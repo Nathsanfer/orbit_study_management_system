@@ -1,62 +1,72 @@
-export const essays = [
-  {
-    id: 'desafios-da-educacao-digital',
-    theme: 'Os desafios da educação digital no Brasil',
-    date: '12 de novembro de 2026',
-    score: 880,
-    excerpt: 'A ampliação do acesso à internet transformou a maneira como o conhecimento circula...',
-    essay: [
-      'A ampliação do acesso à internet transformou a maneira como o conhecimento circula na sociedade brasileira. Nesse contexto, a educação digital tornou-se essencial para a formação dos estudantes. Entretanto, a desigualdade de acesso aos recursos tecnológicos e a falta de orientação para seu uso ainda dificultam a democratização desse aprendizado.',
-      'Em primeiro lugar, a diferença de infraestrutura entre as regiões do país limita a participação de muitos alunos. Sem conexão estável e equipamentos adequados, parte dos estudantes não consegue aproveitar plataformas e materiais digitais. Assim, a tecnologia, que poderia ampliar oportunidades, acaba reproduzindo desigualdades já existentes.',
-      'Além disso, o acesso aos dispositivos não garante, por si só, uma aprendizagem efetiva. É necessário que os jovens desenvolvam senso crítico para avaliar informações e utilizar ferramentas digitais com responsabilidade. Para isso, professores também precisam de formação continuada e apoio pedagógico.',
-      'Portanto, o Ministério da Educação, em parceria com estados e municípios, deve ampliar programas de conectividade e distribuição de equipamentos nas escolas públicas, priorizando áreas vulneráveis. Paralelamente, as redes de ensino devem oferecer formação prática aos docentes sobre cidadania digital. Dessa forma, será possível tornar a educação digital mais inclusiva e preparar os estudantes para os desafios contemporâneos.',
-    ],
-    competencies: [
-      { name: 'Domínio da norma-padrão', score: 160, feedback: 'Boa construção sintática e vocabulário adequado. Revise pequenos pontos de pontuação para alcançar ainda mais precisão.' },
-      { name: 'Compreensão do tema', score: 180, feedback: 'O tema foi abordado de forma consistente, com repertório pertinente e sem tangenciar a proposta.' },
-      { name: 'Argumentação', score: 160, feedback: 'Os argumentos são relevantes. Você pode aprofundar a relação entre as causas apresentadas e seus impactos.' },
-      { name: 'Coesão textual', score: 180, feedback: 'Os conectivos articulam bem os parágrafos e contribuem para a progressão das ideias.' },
-      { name: 'Proposta de intervenção', score: 200, feedback: 'A proposta apresenta agentes, ações e finalidade, respeitando os direitos humanos.' },
-    ],
-  },
-  {
-    id: 'preservacao-biomas',
-    theme: 'A importância da preservação dos biomas brasileiros',
-    date: '28 de outubro de 2026',
-    score: 760,
-    excerpt: 'Os biomas brasileiros concentram uma biodiversidade fundamental para o equilíbrio ambiental...',
-    essay: [
-      'Os biomas brasileiros concentram uma biodiversidade fundamental para o equilíbrio ambiental e para a vida de diversas comunidades. Apesar de sua relevância, esses territórios enfrentam pressões causadas pelo desmatamento e pela exploração irregular. Por isso, preservar os biomas é um desafio que exige ação pública e participação social.',
-      'A expansão de atividades econômicas sem planejamento adequado contribui para a perda de vegetação nativa. Como consequência, espécies perdem seus habitats e os ciclos naturais são afetados. Esse processo também compromete a qualidade de vida de populações que dependem diretamente dos recursos locais.',
-      'Outro obstáculo é a fiscalização insuficiente em áreas extensas e de difícil acesso. Quando as infrações não são identificadas e punidas, práticas ilegais tendem a continuar. A educação ambiental, por sua vez, pode aproximar a população desse debate e incentivar escolhas mais responsáveis.',
-      'Diante disso, os órgãos ambientais devem ampliar o monitoramento dos biomas com equipes e tecnologias de fiscalização, além de fortalecer a aplicação das leis. As escolas também devem promover projetos de educação ambiental conectados à realidade local. Com essas medidas, será possível proteger a biodiversidade e valorizar as comunidades que cuidam desses territórios.',
-    ],
-    competencies: [
-      { name: 'Domínio da norma-padrão', score: 160, feedback: 'A escrita é clara, embora alguns períodos possam ser revistos para melhorar a precisão gramatical.' },
-      { name: 'Compreensão do tema', score: 160, feedback: 'A proposta foi compreendida e desenvolvida dentro do recorte solicitado.' },
-      { name: 'Argumentação', score: 140, feedback: 'Há argumentos pertinentes, mas faltam exemplos ou dados para sustentar melhor alguns pontos.' },
-      { name: 'Coesão textual', score: 160, feedback: 'A organização é adequada. Explore mais variedade de recursos coesivos entre as ideias.' },
-      { name: 'Proposta de intervenção', score: 140, feedback: 'A proposta é viável, mas pode detalhar melhor como as ações serão implementadas.' },
-    ],
-  },
-  {
-    id: 'saude-mental-jovens',
-    theme: 'Caminhos para cuidar da saúde mental dos jovens',
-    date: '10 de outubro de 2026',
-    score: 920,
-    excerpt: 'O cuidado com a saúde mental durante a juventude é essencial para o desenvolvimento...',
-    essay: [
-      'O cuidado com a saúde mental durante a juventude é essencial para o desenvolvimento individual e coletivo. No Brasil, porém, muitos jovens encontram dificuldades para falar sobre sofrimento emocional e obter acompanhamento. Esse cenário se relaciona tanto ao estigma social quanto à oferta limitada de serviços de acolhimento.',
-      'Historicamente, problemas emocionais foram tratados como questões privadas, o que contribuiu para o silêncio e para a demora na busca por ajuda. Entre os jovens, a pressão por desempenho e aceitação pode intensificar esse quadro. Sem espaços seguros de diálogo, sinais de sofrimento tendem a ser ignorados.',
-      'Também é necessário considerar que a rede pública nem sempre dispõe de profissionais e estruturas suficientes para atender a demanda. A escola pode ajudar a identificar necessidades, mas não deve substituir o atendimento especializado. A articulação entre educação, saúde e família é fundamental.',
-      'Assim, o Ministério da Saúde deve ampliar equipes de atenção psicossocial voltadas à juventude e divulgar canais gratuitos de atendimento. Em conjunto, as secretarias de educação devem capacitar profissionais para acolher e encaminhar estudantes, preservando sua privacidade. Com informação e acesso a serviços, será possível reduzir o estigma e garantir cuidado adequado.',
-    ],
-    competencies: [
-      { name: 'Domínio da norma-padrão', score: 180, feedback: 'Excelente controle da escrita formal, com períodos bem estruturados e vocabulário preciso.' },
-      { name: 'Compreensão do tema', score: 180, feedback: 'Abordagem completa e bem delimitada, com repertório relacionado ao tema.' },
-      { name: 'Argumentação', score: 180, feedback: 'Os argumentos são desenvolvidos com clareza e estabelecem relações consistentes entre causas e consequências.' },
-      { name: 'Coesão textual', score: 180, feedback: 'Conectivos variados e progressão fluida entre os parágrafos.' },
-      { name: 'Proposta de intervenção', score: 200, feedback: 'Intervenção detalhada, com agentes, ações, meios e finalidade bem definidos.' },
-    ],
-  },
-];
+import { getSupabase } from '@/lib/supabase.js';
+
+const essaySelection = `
+  id,titulo,tema,texto,data_criacao,
+  avaliacao_redacao(
+    id,nota,comentario,
+    competencias_redacao(competencia,nota,comentario)
+  )
+`;
+
+function mapEssay(row) {
+  const evaluation = row.avaliacao_redacao?.[0] ?? null;
+  const competencies = (evaluation?.competencias_redacao ?? [])
+    .sort((first, second) => first.competencia - second.competencia)
+    .map((competency) => ({
+      name: `Competência ${competency.competencia}`,
+      score: competency.nota,
+      feedback: competency.comentario ?? '',
+    }));
+
+  return {
+    id: row.id,
+    title: row.titulo,
+    theme: row.tema,
+    date: new Date(row.data_criacao).toLocaleDateString('pt-BR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }),
+    score: evaluation?.nota ?? null,
+    feedback: evaluation?.comentario ?? '',
+    essay: row.texto ? row.texto.split(/\r?\n\s*\r?\n/).filter(Boolean) : [],
+    excerpt: row.texto?.replace(/\s+/g, ' ').slice(0, 130) ?? '',
+    competencies,
+  };
+}
+
+export async function loadEssays() {
+  const { data, error } = await getSupabase()
+    .from('redacoes')
+    .select(essaySelection)
+    .order('data_criacao', { ascending: false });
+  if (error) throw error;
+
+  return (data ?? []).map(mapEssay);
+}
+
+export async function loadEssay(id) {
+  const { data, error } = await getSupabase()
+    .from('redacoes')
+    .select(essaySelection)
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw error;
+
+  return data ? mapEssay(data) : null;
+}
+
+export async function createEssay({ title, theme, text }) {
+  const { data, error } = await getSupabase()
+    .from('redacoes')
+    .insert({
+      titulo: title,
+      tema: theme,
+      texto: text,
+    })
+    .select(essaySelection)
+    .single();
+  if (error) throw error;
+
+  return mapEssay(data);
+}

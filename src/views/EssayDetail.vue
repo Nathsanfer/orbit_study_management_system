@@ -1,10 +1,28 @@
 <script setup>
-import { computed } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
-import { essays } from '@/data/essays.js';
+import { loadEssay } from '@/data/essays.js';
+import { getErrorMessage } from '@/lib/supabase.js';
 
 const route = useRoute();
-const essay = computed(() => essays.find((item) => item.id === route.params.id));
+const essay = ref(null);
+const isLoading = ref(true);
+const errorMessage = ref('');
+
+async function loadCurrentEssay() {
+  isLoading.value = true;
+  errorMessage.value = '';
+  try {
+    essay.value = await loadEssay(route.params.id);
+  } catch (error) {
+    errorMessage.value = getErrorMessage(error);
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+onMounted(loadCurrentEssay);
+watch(() => route.params.id, loadCurrentEssay);
 </script>
 
 <template>
@@ -20,9 +38,13 @@ const essay = computed(() => essays.find((item) => item.id === route.params.id))
         <p class="page-eyebrow">Redação de {{ essay.date }}</p>
         <h1 class="page-title">{{ essay.theme }}</h1>
       </div>
-      <div class="score-card" aria-label="Nota final">
+      <div v-if="essay.score !== null" class="score-card" aria-label="Nota final">
         <span>Nota final</span>
         <strong>{{ essay.score }}<small>/1000</small></strong>
+      </div>
+      <div v-else class="score-card">
+        <span>Avaliação</span>
+        <strong class="pending-score">Pendente</strong>
       </div>
     </header>
 
@@ -37,8 +59,8 @@ const essay = computed(() => essays.find((item) => item.id === route.params.id))
         </div>
         <div class="essay-text">
           <p v-for="(paragraph, index) in essay.essay" :key="index">{{ paragraph }}</p>
+          <p v-if="!essay.essay.length" class="empty-copy">Nenhum texto foi cadastrado para esta redação.</p>
         </div>
-        <p class="sample-note">Texto demonstrativo para visualização da tela de avaliação.</p>
       </article>
 
       <section class="evaluation-panel" aria-labelledby="evaluation-title">
@@ -50,27 +72,40 @@ const essay = computed(() => essays.find((item) => item.id === route.params.id))
           <span class="competency-total">{{ essay.competencies.length }} critérios</span>
         </div>
 
-        <article
-          v-for="(competency, index) in essay.competencies"
-          :key="competency.name"
-          class="competency-card"
-        >
-          <div class="competency-topline">
-            <span class="competency-number">0{{ index + 1 }}</span>
-            <h3>{{ competency.name }}</h3>
-            <strong>{{ competency.score }}<small>/200</small></strong>
-          </div>
-          <p>{{ competency.feedback }}</p>
-        </article>
+        <template v-if="essay.competencies.length">
+          <article
+            v-for="(competency, index) in essay.competencies"
+            :key="competency.name"
+            class="competency-card"
+          >
+            <div class="competency-topline">
+              <span class="competency-number">0{{ index + 1 }}</span>
+              <h3>{{ competency.name }}</h3>
+              <strong>{{ competency.score }}<small>/200</small></strong>
+            </div>
+            <p>{{ competency.feedback }}</p>
+          </article>
+        </template>
 
-        <div class="evaluation-total">
+        <p v-if="!essay.competencies.length" class="empty-copy">Ainda não há detalhamento de competências para esta redação.</p>
+
+        <div v-if="essay.score !== null" class="evaluation-total">
           <span>Nota total</span>
           <strong>{{ essay.score }} <small>/ 1000</small></strong>
         </div>
+        <p v-if="essay.feedback" class="evaluation-feedback">{{ essay.feedback }}</p>
       </section>
     </div>
 
     <RouterLink class="back-link" :to="{ name: 'essays' }">← Voltar para redações</RouterLink>
+  </section>
+
+  <section v-else-if="isLoading" class="empty-state" role="status">Carregando redação...</section>
+
+  <section v-else-if="errorMessage" class="empty-state" role="alert">
+    <h1>Não foi possível carregar a redação</h1>
+    <p>{{ errorMessage }}</p>
+    <RouterLink class="primary-button" :to="{ name: 'essays' }">Voltar para redações</RouterLink>
   </section>
 
   <section v-else class="empty-state">
@@ -116,6 +151,10 @@ const essay = computed(() => essays.find((item) => item.id === route.params.id))
 .score-card strong {
   color: var(--accent);
   font: 500 23px var(--font-title);
+}
+
+.score-card .pending-score {
+  font-size: 15px;
 }
 
 .score-card small {
@@ -185,14 +224,6 @@ const essay = computed(() => essays.find((item) => item.id === route.params.id))
   font-size: 11px;
   line-height: 1.85;
   text-align: justify;
-}
-
-.sample-note {
-  margin: 17px 0 0;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
-  color: var(--muted);
-  font-size: 9px;
 }
 
 .evaluation-panel {
@@ -297,6 +328,13 @@ const essay = computed(() => essays.find((item) => item.id === route.params.id))
 .evaluation-total small {
   color: var(--muted);
   font: 400 9px var(--font-body);
+}
+
+.evaluation-feedback,
+.empty-copy {
+  color: var(--text-soft);
+  font-size: 10px;
+  line-height: 1.65;
 }
 
 .back-link {
