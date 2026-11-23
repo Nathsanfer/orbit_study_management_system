@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { loadStudySessions } from '@/data/study.js';
 import { getErrorMessage } from '@/lib/supabase.js';
+import { getSubjectIcon } from '@/lib/icons.js';
 
 const weekOffset = ref(0);
 const selectedDate = ref(new Date());
@@ -184,7 +185,9 @@ function goToCurrentWeek() {
             <strong>{{ sessionTime(session.startedAt) }}</strong>
             <span>{{ getSessionEnd(session) }}</span>
           </div>
-          <div class="session-subject-mark" aria-hidden="true">{{ session.subject.icon }}</div>
+          <div class="session-subject-mark" aria-hidden="true">
+            <component :is="getSubjectIcon(session.subject.icon)" :size="21" :stroke-width="1.7" />
+          </div>
           <div class="session-copy">
             <span class="session-subject">{{ session.subject.name }}</span>
             <h3>{{ session.topic }}</h3>

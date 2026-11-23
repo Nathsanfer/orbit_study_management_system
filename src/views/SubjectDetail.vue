@@ -3,6 +3,7 @@ import { onMounted, ref, watch } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 import { loadSubject } from '@/data/subjects.js';
 import { getErrorMessage } from '@/lib/supabase.js';
+import { getSubjectIcon } from '@/lib/icons.js';
 
 const route = useRoute();
 const subject = ref(null);
@@ -35,7 +36,9 @@ watch(() => route.params.id, loadCurrentSubject);
 
     <header class="detail-header">
       <div class="detail-title-line">
-        <span class="detail-subject-icon" aria-hidden="true">{{ subject.icon }}</span>
+        <span class="detail-subject-icon" aria-hidden="true">
+          <component :is="getSubjectIcon(subject.icon)" :size="26" :stroke-width="1.6" />
+        </span>
         <div>
           <p class="page-eyebrow">Sua matéria</p>
           <h1 class="detail-title">{{ subject.name }}</h1>

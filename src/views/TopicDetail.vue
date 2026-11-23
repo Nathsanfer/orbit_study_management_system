@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 import { loadSubject } from '@/data/subjects.js';
 import { getErrorMessage } from '@/lib/supabase.js';
+import { getSubjectIcon } from '@/lib/icons.js';
 
 const route = useRoute();
 const subject = ref(null);
@@ -54,7 +55,9 @@ watch(
 
     <header class="topic-header">
       <div class="topic-heading">
-        <span class="topic-subject-icon" aria-hidden="true">{{ subject.icon }}</span>
+        <span class="topic-subject-icon" aria-hidden="true">
+          <component :is="getSubjectIcon(subject.icon)" :size="25" :stroke-width="1.6" />
+        </span>
         <div>
           <p class="page-eyebrow">{{ subject.name }}</p>
           <h1>{{ topic.name }}</h1>
@@ -150,7 +153,9 @@ watch(
           class="subject-return"
           :to="{ name: 'subject-detail', params: { id: subject.id } }"
         >
-          <span class="return-icon" aria-hidden="true">{{ subject.icon }}</span>
+          <span class="return-icon" aria-hidden="true">
+            <component :is="getSubjectIcon(subject.icon)" :size="18" :stroke-width="1.7" />
+          </span>
           <span>
             <small>Parte da matéria</small>
             <strong>{{ subject.name }}</strong>

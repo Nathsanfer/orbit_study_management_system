@@ -1,4 +1,6 @@
 <script setup>
+import { getSubjectIcon } from '@/lib/icons.js';
+
 defineProps({
   subject: {
     type: Object,
@@ -14,7 +16,9 @@ defineProps({
     :style="{ '--subject-color': subject.color }"
   >
     <div class="card-topline">
-      <span class="subject-icon" aria-hidden="true">{{ subject.icon }}</span>
+      <span class="subject-icon" aria-hidden="true">
+        <component :is="getSubjectIcon(subject.icon)" :size="21" :stroke-width="1.7" />
+      </span>
       <span v-if="subject.progress === 100" class="completion-badge">
         <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
           <path d="m3.5 8 3 3 6-6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
