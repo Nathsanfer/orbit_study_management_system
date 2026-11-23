@@ -1,13 +1,28 @@
 <script setup>
-import { computed } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
-import { subjects } from '@/data/subjects.js';
+import { loadSubject } from '@/data/subjects.js';
+import { getErrorMessage } from '@/lib/supabase.js';
 
 const route = useRoute();
-const subject = computed(() => subjects.value.find((item) => item.id === route.params.id));
-const completedTopics = computed(() =>
-  subject.value?.topics.filter((topic) => topic.status === 'Concluído').length ?? 0,
-);
+const subject = ref(null);
+const isLoading = ref(true);
+const errorMessage = ref('');
+
+async function loadCurrentSubject() {
+  isLoading.value = true;
+  errorMessage.value = '';
+  try {
+    subject.value = await loadSubject(route.params.id);
+  } catch (error) {
+    errorMessage.value = getErrorMessage(error);
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+onMounted(loadCurrentSubject);
+watch(() => route.params.id, loadCurrentSubject);
 </script>
 
 <template>
@@ -55,7 +70,7 @@ const completedTopics = computed(() =>
         </span>
         <div>
           <strong>{{ subject.topics.length }}</strong>
-          <span>{{ subject.topics.length === 1 ? 'tópico' : 'tópicos' }} · {{ completedTopics }} concluídos</span>
+          <span>{{ subject.topics.length === 1 ? 'tópico cadastrado' : 'tópicos cadastrados' }}</span>
         </div>
       </div>
     </section>
@@ -74,22 +89,26 @@ const completedTopics = computed(() =>
           :to="{ name: 'topic-detail', params: { subjectId: subject.id, topicId: topic.id } }"
         >
           <span class="topic-status" aria-hidden="true">
-            <svg v-if="topic.status === 'Concluído'" width="15" height="15" viewBox="0 0 16 16" fill="none">
-              <path d="m3.5 8 3 3 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-            <span v-else>{{ String(index + 1).padStart(2, '0') }}</span>
+            <span>{{ String(index + 1).padStart(2, '0') }}</span>
           </span>
           <div class="topic-copy">
             <strong>{{ topic.name }}</strong>
-            <span>Materiais e anotações em breve</span>
+            <span>{{ topic.description || 'Sem descrição cadastrada.' }}</span>
           </div>
-          <span class="topic-state" :class="{ done: topic.status === 'Concluído' }">{{ topic.status }}</span>
         </RouterLink>
       </div>
       <div v-else class="detail-empty">
-        Ainda não há tópicos nesta matéria. Em breve você poderá organizá-los por aqui.
+        Nenhum tópico cadastrado nesta matéria.
       </div>
     </section>
+  </section>
+
+  <section v-else-if="isLoading" class="empty-state" role="status">Carregando matéria...</section>
+
+  <section v-else-if="errorMessage" class="empty-state" role="alert">
+    <h1>Não foi possível carregar a matéria</h1>
+    <p>{{ errorMessage }}</p>
+    <RouterLink class="primary-button" :to="{ name: 'subjects' }">Voltar às matérias</RouterLink>
   </section>
 
   <section v-else class="empty-state">

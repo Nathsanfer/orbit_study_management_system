@@ -1,14 +1,27 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { RouterLink } from 'vue-router';
-import { subjects } from '@/data/subjects.js';
+import { loadSubjects, subjects } from '@/data/subjects.js';
+import { getErrorMessage } from '@/lib/supabase.js';
 
+const isLoading = ref(true);
+const errorMessage = ref('');
 const totalTopics = computed(() =>
   subjects.value.reduce((total, subject) => total + subject.topics.length, 0),
 );
 const overallProgress = computed(() => {
   if (!subjects.value.length) return 0;
   return Math.round(subjects.value.reduce((total, subject) => total + subject.progress, 0) / subjects.value.length);
+});
+
+onMounted(async () => {
+  try {
+    await loadSubjects();
+  } catch (error) {
+    errorMessage.value = getErrorMessage(error);
+  } finally {
+    isLoading.value = false;
+  }
 });
 </script>
 
@@ -27,17 +40,19 @@ const overallProgress = computed(() => {
       <RouterLink class="primary-button" :to="{ name: 'subjects' }">
         Explorar minhas matérias <span aria-hidden="true">→</span>
       </RouterLink>
+      <p v-if="errorMessage" class="request-error" role="alert">{{ errorMessage }}</p>
+      <p v-else-if="isLoading" class="home-loading" role="status">Carregando seus dados...</p>
       <div class="home-stats">
         <div class="home-stat">
-          <strong>{{ subjects.length }}</strong>
+          <strong>{{ isLoading || errorMessage ? '—' : subjects.length }}</strong>
           <span>matérias organizadas</span>
         </div>
         <div class="home-stat">
-          <strong>{{ totalTopics }}</strong>
+          <strong>{{ isLoading || errorMessage ? '—' : totalTopics }}</strong>
           <span>tópicos para explorar</span>
         </div>
         <div class="home-stat">
-          <strong>{{ overallProgress }}%</strong>
+          <strong>{{ isLoading || errorMessage ? '—' : `${overallProgress}%` }}</strong>
           <span>progresso médio</span>
         </div>
       </div>

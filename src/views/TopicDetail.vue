@@ -1,20 +1,39 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
-import { subjects } from '@/data/subjects.js';
+import { loadSubject } from '@/data/subjects.js';
+import { getErrorMessage } from '@/lib/supabase.js';
 
 const route = useRoute();
-const subject = computed(() =>
-  subjects.value.find((item) => item.id === route.params.subjectId),
+const subject = ref(null);
+const topic = ref(null);
+const isLoading = ref(true);
+const errorMessage = ref('');
+const summary = computed(() =>
+  topic.value?.content?.resumo ?? topic.value?.content?.summary ?? topic.value?.description ?? '',
 );
-const topic = computed(() =>
-  subject.value?.topics.find((item) => item.id === route.params.topicId),
+const notes = computed(() =>
+  topic.value?.content?.anotacoes ?? topic.value?.content?.notes ?? '',
 );
-const progress = computed(() => {
-  if (topic.value?.status === 'Concluído') return 100;
-  if (topic.value?.status === 'Em andamento') return 45;
-  return 0;
-});
+
+async function loadCurrentTopic() {
+  isLoading.value = true;
+  errorMessage.value = '';
+  try {
+    subject.value = await loadSubject(route.params.subjectId);
+    topic.value = subject.value?.topics.find((item) => item.id === route.params.topicId) ?? null;
+  } catch (error) {
+    errorMessage.value = getErrorMessage(error);
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+onMounted(loadCurrentTopic);
+watch(
+  () => [route.params.subjectId, route.params.topicId],
+  loadCurrentTopic,
+);
 </script>
 
 <template>
@@ -42,10 +61,6 @@ const progress = computed(() => {
           <p class="topic-intro">Um espaço dedicado para reunir e aprofundar este conteúdo.</p>
         </div>
       </div>
-      <span class="topic-status" :class="{ complete: topic.status === 'Concluído' }">
-        <span aria-hidden="true"></span>
-        {{ topic.status }}
-      </span>
     </header>
 
     <div class="topic-layout">
@@ -58,10 +73,10 @@ const progress = computed(() => {
               <h2>Resumo</h2>
             </div>
           </div>
-          <p v-if="topic.summary" class="summary-copy">{{ topic.summary }}</p>
+          <p v-if="summary" class="summary-copy">{{ summary }}</p>
           <div v-else class="content-placeholder">
             <span class="placeholder-mark" aria-hidden="true">Aa</span>
-            <p>Seu resumo deste tópico poderá ser organizado aqui.</p>
+            <p>Nenhum resumo cadastrado.</p>
           </div>
         </section>
 
@@ -78,9 +93,9 @@ const progress = computed(() => {
               <h2>Anotações</h2>
             </div>
           </div>
-          <p v-if="topic.notes" class="notes-copy">{{ topic.notes }}</p>
+          <p v-if="notes" class="notes-copy">{{ notes }}</p>
           <div v-else class="content-placeholder">
-            <p>As anotações feitas durante os estudos aparecerão neste espaço.</p>
+            <p>Nenhuma anotação cadastrada.</p>
           </div>
         </section>
 
@@ -98,10 +113,10 @@ const progress = computed(() => {
                 <h2>Materiais</h2>
               </div>
             </div>
-            <span class="materials-count">{{ topic.materials?.length ?? 0 }}</span>
+            <span class="materials-count">{{ topic.materials.length }}</span>
           </div>
 
-          <div v-if="topic.materials?.length" class="materials-list">
+          <div v-if="topic.materials.length" class="materials-list">
             <article v-for="material in topic.materials" :key="material.id" class="material-card">
               <span class="material-icon" :class="`material-${material.type.toLowerCase()}`" aria-hidden="true">
                 <svg v-if="material.type === 'Imagem'" width="19" height="19" viewBox="0 0 20 20" fill="none">
@@ -119,7 +134,7 @@ const progress = computed(() => {
               </span>
               <div class="material-copy">
                 <strong>{{ material.title }}</strong>
-                <span>{{ material.description }}</span>
+                <span>{{ material.type }}</span>
               </div>
               <span class="material-type">{{ material.type }}</span>
             </article>
@@ -131,22 +146,6 @@ const progress = computed(() => {
       </main>
 
       <aside class="topic-aside">
-        <section class="progress-panel">
-          <p class="section-eyebrow">Seu progresso</p>
-          <strong class="progress-number">{{ progress }}<span>%</span></strong>
-          <div
-            class="topic-progress-track"
-            role="progressbar"
-            :aria-label="`Progresso em ${topic.name}`"
-            aria-valuemin="0"
-            aria-valuemax="100"
-            :aria-valuenow="progress"
-          >
-            <div class="topic-progress-fill" :style="{ width: `${progress}%` }"></div>
-          </div>
-          <span class="progress-caption">{{ topic.status }}</span>
-        </section>
-
         <RouterLink
           class="subject-return"
           :to="{ name: 'subject-detail', params: { id: subject.id } }"
@@ -159,9 +158,16 @@ const progress = computed(() => {
           <span class="return-arrow" aria-hidden="true">→</span>
         </RouterLink>
 
-        <p class="future-note">Estude no seu tempo. O que você aprende fica aqui, bem organizado.</p>
       </aside>
     </div>
+  </section>
+
+  <section v-else-if="isLoading" class="empty-state" role="status">Carregando tópico...</section>
+
+  <section v-else-if="errorMessage" class="empty-state" role="alert">
+    <h1>Não foi possível carregar o tópico</h1>
+    <p>{{ errorMessage }}</p>
+    <RouterLink class="primary-button" :to="{ name: 'subjects' }">Voltar às matérias</RouterLink>
   </section>
 
   <section v-else class="empty-state">

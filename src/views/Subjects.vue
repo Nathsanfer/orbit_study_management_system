@@ -1,12 +1,26 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import SubjectCard from '@/components/SubjectCard.vue';
-import { subjects, subjectColors } from '@/data/subjects.js';
+import { createSubject as saveSubject, loadSubjects, subjects, subjectColors } from '@/data/subjects.js';
+import { getErrorMessage } from '@/lib/supabase.js';
 
 const searchQuery = ref('');
 const showAddDialog = ref(false);
 const newSubjectName = ref('');
 const newSubjectColor = ref(subjectColors[0]);
+const isLoading = ref(true);
+const isSaving = ref(false);
+const errorMessage = ref('');
+
+onMounted(async () => {
+  try {
+    await loadSubjects();
+  } catch (error) {
+    errorMessage.value = getErrorMessage(error);
+  } finally {
+    isLoading.value = false;
+  }
+});
 
 const filteredSubjects = computed(() => {
   const query = searchQuery.value.trim().toLocaleLowerCase('pt-BR');
@@ -17,30 +31,23 @@ const filteredSubjects = computed(() => {
   );
 });
 
-function createSubject() {
+async function createSubject() {
   const name = newSubjectName.value.trim();
   if (!name) return;
 
-  const slug = name
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
-  const id = `${slug || 'materia'}-${Date.now()}`;
-
-  subjects.value.push({
-    id,
-    name,
-    icon: '✦',
-    color: newSubjectColor.value,
-    topics: [],
-    progress: 0,
-  });
-
-  searchQuery.value = '';
-  newSubjectName.value = '';
-  showAddDialog.value = false;
+  errorMessage.value = '';
+  isSaving.value = true;
+  try {
+    await saveSubject(name, newSubjectColor.value);
+    await loadSubjects();
+    searchQuery.value = '';
+    newSubjectName.value = '';
+    showAddDialog.value = false;
+  } catch (error) {
+    errorMessage.value = getErrorMessage(error);
+  } finally {
+    isSaving.value = false;
+  }
 }
 
 function closeDialog() {
@@ -85,9 +92,12 @@ function closeDialog() {
       </div>
     </header>
 
-    <div class="cards-grid">
+    <p v-if="errorMessage && !showAddDialog" class="request-error" role="alert">{{ errorMessage }}</p>
+
+    <div v-if="isLoading" class="empty-state" role="status">Carregando matérias...</div>
+    <div v-else class="cards-grid">
       <SubjectCard v-for="subject in filteredSubjects" :key="subject.id" :subject="subject" />
-      <div v-if="filteredSubjects.length === 0" class="empty-state">
+      <div v-if="filteredSubjects.length === 0 && !errorMessage" class="empty-state">
         <h2>Nenhuma matéria por aqui</h2>
         <p>Tente outro nome ou crie uma nova matéria para começar.</p>
       </div>
@@ -113,6 +123,7 @@ function closeDialog() {
         </div>
 
         <form @submit.prevent="createSubject">
+          <p v-if="errorMessage" class="request-error" role="alert">{{ errorMessage }}</p>
           <label class="field-label" for="subject-name">Nome da matéria</label>
           <input
             id="subject-name"
@@ -142,7 +153,9 @@ function closeDialog() {
 
           <div class="dialog-actions">
             <button class="secondary-button" type="button" @click="closeDialog">Cancelar</button>
-            <button class="primary-button" type="submit">Criar matéria</button>
+            <button class="primary-button" type="submit" :disabled="isSaving">
+              {{ isSaving ? 'Criando...' : 'Criar matéria' }}
+            </button>
           </div>
         </form>
       </section>
