@@ -2,13 +2,9 @@
   <nav class="sidebar" aria-label="Navegação principal">
     <RouterLink to="/" class="brand" aria-label="Orbit Study, início">
       <span class="brand-mark" aria-hidden="true">
-        <svg viewBox="0 0 32 32" fill="none">
-          <circle cx="16" cy="16" r="3" fill="currentColor" />
-          <ellipse cx="16" cy="16" rx="11" ry="5.5" stroke="currentColor" stroke-width="1.25" transform="rotate(-35 16 16)" />
-          <circle cx="24.8" cy="9.7" r="1.8" fill="currentColor" />
-        </svg>
+        <img :src="logo" alt="" />
       </span>
-      <span class="brand-word">Orbit<span>.</span><small>Study</small></span>
+      <span class="brand-word">O r b i t<span> .</span><small>Study</small></span>
     </RouterLink>
     <p class="brand-caption">Seu espaço de aprendizado</p>
     <div class="sidebar-section-label">SEU ESPAÇO</div>
@@ -27,6 +23,26 @@
         <span class="nav-link-copy"><span>Matérias</span><small>Sua jornada de estudos</small></span>
         <span class="nav-link-arrow" aria-hidden="true">→</span>
       </router-link>
+      <router-link to="/study-list" class="nav-link" exact-active-class="nav-link-active">
+        <span class="nav-link-icon" aria-hidden="true">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
+            <path d="M9 6h11M9 12h11M9 18h11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            <path d="m3.5 6 .8.8L6 5m-2.5 7 .8.8L6 11m-2.5 7 .8.8L6 17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <span class="nav-link-copy"><span>Lista</span><small>O que estudar</small></span>
+        <span class="nav-link-arrow" aria-hidden="true">→</span>
+      </router-link>
+      <router-link to="/essays" class="nav-link" exact-active-class="nav-link-active">
+        <span class="nav-link-icon" aria-hidden="true">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
+            <path d="M6 3.5h8l4 4V20a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+            <path d="M14 3.5v5h5M8 12h8M8 15.5h8M8 19h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <span class="nav-link-copy"><span>Redações</span><small>Textos e avaliações</small></span>
+        <span class="nav-link-arrow" aria-hidden="true">→</span>
+      </router-link>
       <router-link to="/schedule" class="nav-link" exact-active-class="nav-link-active">
         <span class="nav-link-icon" aria-hidden="true">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
@@ -38,18 +54,8 @@
         <span class="nav-link-arrow" aria-hidden="true">→</span>
       </router-link>
     </div>
-    <div class="sidebar-note">
-      <span class="sidebar-note-mark" aria-hidden="true">✦</span>
-      <p>Um pouco todos os dias também é <strong>progresso.</strong></p>
-    </div>
+
     <div class="sidebar-footer">
-      <RouterLink to="/profile" class="sidebar-profile" exact-active-class="sidebar-profile-active">
-        <span class="profile-avatar" aria-hidden="true">E</span>
-        <span class="profile-copy"><strong>Meu perfil</strong><small>Estudante Orbit</small></span>
-        <svg class="profile-arrow" width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-          <path d="m6 3 5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </RouterLink>
       <RouterLink to="/settings" class="footer-action" exact-active-class="footer-action-active">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/>
@@ -78,6 +84,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import logo from '@/assets/logo1.png';
 
 const isDark = ref(false);
 function applyTheme() {
@@ -131,9 +138,10 @@ onMounted(() => {
   box-shadow: 0 5px 13px rgb(120 63 85 / 20%);
 }
 
-.brand-mark svg {
+.brand-mark img {
   width: 28px;
   height: 28px;
+  object-fit: contain;
 }
 
 .brand-word {
@@ -316,67 +324,9 @@ onMounted(() => {
 .sidebar-footer {
   display: grid;
   gap: 4px;
+  margin-top: auto;
   padding-top: 12px;
   border-top: 1px solid var(--border);
-}
-
-.sidebar-profile {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 10px;
-  padding: 8px;
-  border: 1px solid transparent;
-  border-radius: 11px;
-  transition: background .18s ease, border-color .18s ease;
-}
-
-.sidebar-profile:hover,
-.sidebar-profile-active {
-  border-color: color-mix(in srgb, var(--accent) 14%, var(--border));
-  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
-}
-
-.profile-avatar {
-  display: grid;
-  width: 34px;
-  height: 34px;
-  flex: 0 0 auto;
-  place-items: center;
-  border: 1px solid color-mix(in srgb, var(--accent) 16%, transparent);
-  border-radius: 50%;
-  color: var(--accent);
-  background: var(--accent-soft);
-  font: 600 15px var(--font-title);
-}
-
-.profile-copy {
-  display: grid;
-  min-width: 0;
-  gap: 3px;
-}
-
-.profile-copy strong {
-  overflow: hidden;
-  color: var(--text);
-  font-size: 10px;
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.profile-copy small {
-  overflow: hidden;
-  color: var(--muted);
-  font-size: 9px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.profile-arrow {
-  flex: 0 0 auto;
-  margin-left: auto;
-  color: var(--muted);
 }
 
 .footer-action,
@@ -476,7 +426,7 @@ onMounted(() => {
     height: 34px;
   }
 
-  .brand-mark svg {
+  .brand-mark img {
     width: 24px;
     height: 24px;
   }
@@ -550,38 +500,15 @@ onMounted(() => {
   .sidebar-footer {
     order: 3;
     width: 100%;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 4px;
     margin-top: 9px;
     padding-top: 8px;
   }
 
-  .sidebar-profile {
-    min-height: 36px;
-    justify-content: center;
-    gap: 5px;
-    padding: 4px;
-  }
-
-  .profile-avatar {
-    width: 23px;
-    height: 23px;
-    font-size: 11px;
-  }
-
-  .profile-copy {
-    display: block;
-  }
-
-  .profile-copy strong,
   .footer-action,
   .theme-switch {
     font-size: 9px;
-  }
-
-  .profile-copy small,
-  .profile-arrow {
-    display: none;
   }
 
   .footer-action,
