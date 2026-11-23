@@ -8,8 +8,11 @@ import TopicDetail from '@/views/TopicDetail.vue';
 import StudyList from '@/views/StudyList.vue';
 import Essays from '@/views/Essays.vue';
 import EssayDetail from '@/views/EssayDetail.vue';
+import Auth from '@/views/Auth.vue';
+import { supabase } from '@/lib/supabase.js';
 
 const routes = [
+  { path: '/auth', name: 'auth', component: Auth },
   { path: '/', name: 'home', component: Home },
   { path: '/subjects', name: 'subjects', component: Subjects },
   { path: '/subjects/:id', name: 'subject-detail', component: SubjectDetail },
@@ -25,6 +28,27 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
+});
+
+router.beforeEach(async (to) => {
+  if (to.name === 'auth') return true;
+  if (!supabase) return { name: 'auth' };
+
+  try {
+    const { data, error } = await supabase.auth.getSession();
+    if (error || !data.session) {
+      return {
+        name: 'auth',
+        query: error ? { authError: 'session' } : { redirect: to.fullPath },
+      };
+    }
+    return true;
+  } catch {
+    return {
+      name: 'auth',
+      query: { authError: 'session' },
+    };
+  }
 });
 
 export default router;

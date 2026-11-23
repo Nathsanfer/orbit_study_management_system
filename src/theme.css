@@ -152,6 +152,12 @@ button {
   box-shadow: 0 5px 14px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
+.primary-button:disabled,
+.secondary-button:disabled {
+  cursor: not-allowed;
+  opacity: .65;
+}
+
 .secondary-button {
   border-color: var(--border);
   color: var(--text-soft);
@@ -181,4 +187,15 @@ button {
 .empty-state p {
   margin: 0 0 16px;
   font-size: 12px;
+}
+
+.request-error {
+  margin: 12px 0;
+  padding: 11px 13px;
+  border: 1px solid color-mix(in srgb, #b54141 24%, var(--border));
+  border-radius: 8px;
+  color: #b54141;
+  background: color-mix(in srgb, #b54141 6%, var(--surface));
+  font-size: 10px;
+  line-height: 1.55;
 }

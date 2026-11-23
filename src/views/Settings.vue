@@ -1,5 +1,76 @@
 <script setup>
-import { RouterLink } from 'vue-router';
+import { computed, onMounted, ref } from 'vue';
+import { RouterLink, useRouter } from 'vue-router';
+import { getErrorMessage, getSupabase } from '@/lib/supabase.js';
+
+const router = useRouter();
+const profileName = ref('');
+const email = ref('');
+const isLoading = ref(true);
+const isSaving = ref(false);
+const errorMessage = ref('');
+const successMessage = ref('');
+const initials = computed(() => profileName.value.trim().charAt(0).toLocaleUpperCase('pt-BR') || '•');
+
+onMounted(loadProfile);
+
+async function loadProfile() {
+  try {
+    const client = getSupabase();
+    const { data: userData, error: userError } = await client.auth.getUser();
+    if (userError) throw userError;
+    if (!userData.user) throw new Error('Sua sessão expirou. Entre novamente.');
+
+    email.value = userData.user.email ?? '';
+    const { data, error } = await client
+      .from('perfis')
+      .select('nome_completo')
+      .eq('id', userData.user.id)
+      .maybeSingle();
+    if (error) throw error;
+
+    profileName.value = data?.nome_completo
+      ?? userData.user.user_metadata?.nome_completo
+      ?? '';
+  } catch (error) {
+    errorMessage.value = getErrorMessage(error);
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+async function saveProfile() {
+  errorMessage.value = '';
+  successMessage.value = '';
+  isSaving.value = true;
+  try {
+    const client = getSupabase();
+    const { data: userData, error: userError } = await client.auth.getUser();
+    if (userError) throw userError;
+    if (!userData.user) throw new Error('Sua sessão expirou. Entre novamente.');
+
+    const { error } = await client
+      .from('perfis')
+      .upsert({ id: userData.user.id, nome_completo: profileName.value.trim() });
+    if (error) throw error;
+    successMessage.value = 'Perfil atualizado.';
+  } catch (error) {
+    errorMessage.value = getErrorMessage(error);
+  } finally {
+    isSaving.value = false;
+  }
+}
+
+async function signOut() {
+  errorMessage.value = '';
+  try {
+    const { error } = await getSupabase().auth.signOut();
+    if (error) throw error;
+    await router.replace({ name: 'auth' });
+  } catch (error) {
+    errorMessage.value = getErrorMessage(error);
+  }
+}
 </script>
 
 <template>
@@ -14,20 +85,25 @@ import { RouterLink } from 'vue-router';
       <h1>Configurações</h1>
       <p>Gerencie seus dados de perfil e as preferências do seu espaço.</p>
     </header>
+    <p v-if="errorMessage" class="request-error" role="alert">{{ errorMessage }}</p>
     <div class="settings-grid">
       <section class="settings-card profile-card" aria-labelledby="profile-title">
         <div class="profile-heading">
-          <span class="profile-avatar" aria-hidden="true">E</span>
+          <span class="profile-avatar" aria-hidden="true">{{ initials }}</span>
           <div>
-            <p class="page-eyebrow">Conta de demonstração</p>
+            <p class="page-eyebrow">Conta conectada</p>
             <h2 id="profile-title">Meu perfil</h2>
-            <p>Estudante Orbit</p>
+            <p>{{ email }}</p>
           </div>
         </div>
-        <div class="profile-note">
-          Seu espaço pessoal está pronto. Os dados da conta poderão ser conectados quando
-          o Orbit receber autenticação.
-        </div>
+        <form class="profile-form" @submit.prevent="saveProfile">
+          <label for="profile-name">Nome completo</label>
+          <input id="profile-name" v-model="profileName" maxlength="120" required :disabled="isLoading" />
+          <p v-if="successMessage" class="success-message" role="status">{{ successMessage }}</p>
+          <button class="primary-button" type="submit" :disabled="isSaving || isLoading">
+            {{ isSaving ? 'Salvando...' : 'Salvar perfil' }}
+          </button>
+        </form>
       </section>
 
       <section class="settings-card preferences-card" aria-labelledby="preferences-title">
@@ -35,6 +111,7 @@ import { RouterLink } from 'vue-router';
         <h2 id="preferences-title">Aparência</h2>
         <p>Alterne entre os temas claro e escuro pelo controle no menu lateral.</p>
         <RouterLink class="primary-button" :to="{ name: 'subjects' }">Voltar às matérias</RouterLink>
+        <button class="secondary-button sign-out-button" type="button" @click="signOut">Sair da conta</button>
       </section>
     </div>
   </section>
@@ -117,15 +194,41 @@ import { RouterLink } from 'vue-router';
   font: 600 20px var(--font-title);
 }
 
-.profile-note {
+.profile-form {
+  display: grid;
+  gap: 9px;
   margin-top: 20px;
-  padding: 14px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
+}
+
+.profile-form label {
   color: var(--text-soft);
-  background: var(--surface-soft);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.profile-form input {
+  min-height: 40px;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  background: var(--bg);
   font-size: 11px;
-  line-height: 1.65;
+}
+
+.profile-form button,
+.sign-out-button {
+  justify-self: start;
+}
+
+.success-message {
+  margin: 0;
+  color: #397c55 !important;
+  font-size: 10px !important;
+}
+
+.sign-out-button {
+  margin-top: 10px;
 }
 
 .preferences-card > p:not(.page-eyebrow) {

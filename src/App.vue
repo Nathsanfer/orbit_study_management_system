@@ -1,11 +1,16 @@
 <script setup>
+import { computed } from 'vue';
+import { useRoute } from 'vue-router';
 import Navigation from './components/Navigation.vue';
+
+const route = useRoute();
+const isAuthPage = computed(() => route.name === 'auth');
 </script>
 
 <template>
   <div class="app-shell">
-    <Navigation />
-    <main class="content page-content">
+    <Navigation v-if="!isAuthPage" />
+    <main class="content page-content" :class="{ 'auth-content': isAuthPage }">
       <router-view />
     </main>
   </div>
@@ -30,6 +35,12 @@ import Navigation from './components/Navigation.vue';
   padding: 41px clamp(22px, 2.7vw, 42px) 56px;
 }
 
+.auth-content {
+  width: 100%;
+  margin: 0;
+  padding: 24px;
+}
+
 @media (max-width: 720px) {
   .content {
     margin-left: 0;
@@ -39,6 +50,10 @@ import Navigation from './components/Navigation.vue';
     width: 100%;
     margin: 0;
     padding: 25px 20px 38px;
+  }
+
+  .auth-content {
+    padding: 18px;
   }
 }
 </style>
