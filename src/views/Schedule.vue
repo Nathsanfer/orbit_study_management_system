@@ -1,22 +1,13 @@
 <script setup>
-import { computed, ref } from 'vue';
-import { subjects } from '@/data/subjects.js';
+import { computed, ref, watch } from 'vue';
+import { loadStudySessions } from '@/data/study.js';
+import { getErrorMessage } from '@/lib/supabase.js';
 
 const weekOffset = ref(0);
 const selectedDate = ref(new Date());
-
-const sessions = [
-  { day: 1, start: '09:00', end: '10:00', subjectId: 'matematica', topic: 'Equações', minutes: 60 },
-  { day: 1, start: '15:00', end: '15:45', subjectId: 'lingua-portuguesa', topic: 'Interpretação de texto', minutes: 45 },
-  { day: 2, start: '10:00', end: '11:00', subjectId: 'biologia', topic: 'Ecologia', minutes: 60 },
-  { day: 2, start: '16:00', end: '16:45', subjectId: 'geografia', topic: 'Clima e vegetação', minutes: 45 },
-  { day: 3, start: '09:30', end: '10:15', subjectId: 'matematica', topic: 'Porcentagem', minutes: 45 },
-  { day: 3, start: '14:00', end: '15:00', subjectId: 'quimica', topic: 'Tabela periódica', minutes: 60 },
-  { day: 4, start: '10:00', end: '10:50', subjectId: 'historia', topic: 'Brasil Colônia', minutes: 50 },
-  { day: 5, start: '09:00', end: '10:00', subjectId: 'biologia', topic: 'Citologia', minutes: 60 },
-  { day: 5, start: '14:00', end: '14:45', subjectId: 'geografia', topic: 'Cartografia', minutes: 45 },
-  { day: 6, start: '10:00', end: '10:45', subjectId: 'lingua-portuguesa', topic: 'Classes gramaticais', minutes: 45 },
-];
+const sessions = ref([]);
+const isLoading = ref(true);
+const errorMessage = ref('');
 
 const weekdayNames = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 const fullWeekdayNames = ['segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado', 'domingo'];
@@ -48,6 +39,23 @@ const weekDays = computed(() => {
   });
 });
 
+async function loadWeekSessions() {
+  isLoading.value = true;
+  errorMessage.value = '';
+  try {
+    const start = weekDays.value[0].date;
+    const end = new Date(start);
+    end.setDate(end.getDate() + 7);
+    sessions.value = await loadStudySessions(start, end);
+  } catch (error) {
+    errorMessage.value = getErrorMessage(error);
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+watch(weekOffset, loadWeekSessions, { immediate: true });
+
 const weekRange = computed(() =>
   formatWeekRange(weekDays.value[0].date, weekDays.value[6].date),
 );
@@ -62,18 +70,19 @@ const selectedDayLabel = computed(() => {
 });
 
 const daySessions = computed(() =>
-  sessions
-    .filter((session) => session.day === selectedDate.value.getDay())
-    .map((session) => ({
-      ...session,
-      subject: subjects.value.find((subject) => subject.id === session.subjectId),
-    }))
-    .filter((session) => session.subject)
-    .sort((first, second) => first.start.localeCompare(second.start)),
+  sessions.value.filter((session) =>
+    session.startedAt.toDateString() === selectedDate.value.toDateString(),
+  ),
 );
 
-const weeklyMinutes = computed(() => sessions.reduce((total, session) => total + session.minutes, 0));
+const weeklyMinutes = computed(() => sessions.value.reduce((total, session) => total + session.minutes, 0));
 const weeklyHours = computed(() => (weeklyMinutes.value / 60).toLocaleString('pt-BR', { maximumFractionDigits: 1 }));
+const weeklyDuration = computed(() => `${weeklyHours.value} horas registradas`);
+const sessionTime = (date) => date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+function getSessionEnd(session) {
+  const end = session.endedAt ?? new Date(session.startedAt.getTime() + session.minutes * 60_000);
+  return sessionTime(end);
+}
 
 function selectDay(day) {
   selectedDate.value = new Date(day.date);
@@ -123,12 +132,12 @@ function goToCurrentWeek() {
     <section class="week-summary" aria-label="Resumo da semana">
       <div>
         <span class="summary-label">Seu ritmo nesta semana</span>
-        <strong>{{ sessions.length }} sessões <span>de estudo</span></strong>
+        <strong>{{ sessions.length }} sessões <span>registradas</span></strong>
       </div>
       <div class="summary-decoration" aria-hidden="true">✦</div>
       <div class="summary-hours">
-        <span class="summary-label">Tempo planejado</span>
-        <strong>{{ weeklyHours }} <span>horas</span></strong>
+        <span class="summary-label">Tempo registrado</span>
+        <strong>{{ weeklyDuration }}</strong>
       </div>
     </section>
 
@@ -145,14 +154,14 @@ function goToCurrentWeek() {
       >
         <span>{{ day.label }}</span>
         <strong>{{ day.date.getDate() }}</strong>
-        <i v-if="sessions.some((session) => session.day === day.weekday)" aria-hidden="true"></i>
+        <i v-if="sessions.some((session) => session.startedAt.toDateString() === day.date.toDateString())" aria-hidden="true"></i>
       </button>
     </div>
 
     <section class="day-agenda">
       <div class="agenda-heading">
         <div>
-          <p class="page-eyebrow">Seu plano do dia</p>
+          <p class="page-eyebrow">Sessões do dia</p>
           <h2>{{ selectedDayLabel }}</h2>
         </div>
         <span class="agenda-count">
@@ -160,22 +169,26 @@ function goToCurrentWeek() {
         </span>
       </div>
 
-      <div v-if="daySessions.length" class="session-list">
+      <p v-if="errorMessage" class="request-error" role="alert">{{ errorMessage }}</p>
+      <div v-if="isLoading" class="empty-state" role="status">Carregando sessões...</div>
+      <div v-else-if="errorMessage" class="empty-state">Não foi possível carregar as sessões.</div>
+
+      <div v-else-if="daySessions.length" class="session-list">
         <article
           v-for="session in daySessions"
-          :key="`${session.day}-${session.start}-${session.subjectId}`"
+          :key="session.id"
           class="session-card"
           :style="{ '--subject-color': session.subject.color }"
         >
           <div class="session-time">
-            <strong>{{ session.start }}</strong>
-            <span>{{ session.end }}</span>
+            <strong>{{ sessionTime(session.startedAt) }}</strong>
+            <span>{{ getSessionEnd(session) }}</span>
           </div>
           <div class="session-subject-mark" aria-hidden="true">{{ session.subject.icon }}</div>
           <div class="session-copy">
             <span class="session-subject">{{ session.subject.name }}</span>
             <h3>{{ session.topic }}</h3>
-            <span class="session-duration">{{ session.minutes }} min · Estudo individual</span>
+            <span class="session-duration">{{ session.minutes }} min · {{ session.status.replaceAll('_', ' ') }}</span>
           </div>
           <span class="session-arrow" aria-hidden="true">→</span>
         </article>
@@ -184,8 +197,8 @@ function goToCurrentWeek() {
       <div v-else class="rest-card">
         <span class="rest-mark" aria-hidden="true">☼</span>
         <div>
-          <h3>Um espaço para respirar</h3>
-          <p>Este dia está livre no seu cronograma. Descanse ou escolha um tópico quando quiser.</p>
+          <h3>Nenhuma sessão registrada</h3>
+          <p>As sessões salvas no seu banco aparecerão aqui.</p>
         </div>
       </div>
     </section>

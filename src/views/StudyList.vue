@@ -1,31 +1,100 @@
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, ref } from 'vue';
+import { RouterLink } from 'vue-router';
+import { loadSubjects, subjects } from '@/data/subjects.js';
+import { getErrorMessage, getSupabase } from '@/lib/supabase.js';
 
-const storageKey = 'orbit-study-list';
-const initialItems = [
-  { id: 'matematica', name: 'Revisar Matemática', done: false },
-  { id: 'biologia', name: 'Estudar Biologia', done: false },
-  { id: 'redacao', name: 'Praticar redação', done: true },
-];
-const savedItems = localStorage.getItem(storageKey);
-const items = ref(savedItems ? JSON.parse(savedItems) : initialItems);
+const items = ref([]);
 const newItem = ref('');
+const selectedSubjectId = ref('');
+const isLoading = ref(true);
+const errorMessage = ref('');
 const remainingCount = computed(() => items.value.filter((item) => !item.done).length);
 
-watch(items, (value) => {
-  localStorage.setItem(storageKey, JSON.stringify(value));
-}, { deep: true });
+onMounted(loadData);
 
-function addItem() {
+async function loadData() {
+  errorMessage.value = '';
+  try {
+    const client = getSupabase();
+    const [availableSubjects, result] = await Promise.all([
+      loadSubjects(),
+      client
+        .from('itens_lista')
+        .select('id,id_materia,titulo,status,posicao,materias(nome)')
+        .order('posicao'),
+    ]);
+    if (result.error) throw result.error;
+    items.value = (result.data ?? []).map((item) => ({
+      id: item.id,
+      subjectId: item.id_materia,
+      subjectName: item.materias.nome,
+      name: item.titulo,
+      done: item.status === 'concluido',
+      position: item.posicao,
+    }));
+    if (!selectedSubjectId.value && availableSubjects.length) {
+      selectedSubjectId.value = availableSubjects[0].id;
+    }
+  } catch (error) {
+    errorMessage.value = getErrorMessage(error);
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+async function addItem() {
   const name = newItem.value.trim();
-  if (!name) return;
+  if (!name || !selectedSubjectId.value) return;
 
-  items.value.push({
-    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    name,
-    done: false,
-  });
-  newItem.value = '';
+  errorMessage.value = '';
+  try {
+    const client = getSupabase();
+    const position = items.value.reduce((max, item) => Math.max(max, item.position), -1) + 1;
+    const { data, error } = await client
+      .from('itens_lista')
+      .insert({
+        id_materia: selectedSubjectId.value,
+        titulo: name,
+        status: 'pendente',
+        posicao: position,
+      })
+      .select('id,id_materia,titulo,status,posicao,materias(nome)')
+      .single();
+    if (error) throw error;
+
+    items.value.push({
+      id: data.id,
+      subjectId: data.id_materia,
+      subjectName: data.materias.nome,
+      name: data.titulo,
+      done: data.status === 'concluido',
+      position: data.posicao,
+    });
+    newItem.value = '';
+  } catch (error) {
+    errorMessage.value = getErrorMessage(error);
+  }
+}
+
+async function updateStatus(item) {
+  const updatedDone = item.done;
+  item.isUpdating = true;
+  errorMessage.value = '';
+  try {
+    const { error } = await getSupabase()
+      .from('itens_lista')
+      .update({ status: updatedDone ? 'concluido' : 'pendente' })
+      .eq('id', item.id)
+      .select('id')
+      .single();
+    if (error) throw error;
+  } catch (error) {
+    item.done = !updatedDone;
+    errorMessage.value = getErrorMessage(error);
+  } finally {
+    item.isUpdating = false;
+  }
 }
 </script>
 
@@ -52,6 +121,8 @@ function addItem() {
         <span class="summary-mark" aria-hidden="true">✦</span>
       </div>
 
+      <p v-if="errorMessage" class="request-error" role="alert">{{ errorMessage }}</p>
+
       <form class="add-form" @submit.prevent="addItem">
         <label class="sr-only" for="study-item">Adicionar matéria ou tópico</label>
         <input
@@ -62,15 +133,26 @@ function addItem() {
           placeholder="Ex.: Revisar funções matemáticas"
           required
         />
-        <button class="primary-button" type="submit">
+        <label class="sr-only" for="study-subject">Matéria do item</label>
+        <select id="study-subject" v-model="selectedSubjectId" required :disabled="!subjects.length">
+          <option value="" disabled>Selecione uma matéria</option>
+          <option v-for="subject in subjects" :key="subject.id" :value="subject.id">{{ subject.name }}</option>
+        </select>
+        <button class="primary-button" type="submit" :disabled="!subjects.length">
           <span aria-hidden="true">+</span> Adicionar item
         </button>
       </form>
 
-      <ul v-if="items.length" class="study-items">
+      <div v-if="!subjects.length && !isLoading && !errorMessage" class="list-hint">
+        Cadastre uma matéria antes de adicionar itens à lista.
+        <RouterLink :to="{ name: 'subjects' }">Criar matéria</RouterLink>
+      </div>
+
+      <div v-if="isLoading" class="empty-state" role="status">Carregando sua lista...</div>
+      <ul v-else-if="items.length" class="study-items">
         <li v-for="item in items" :key="item.id" class="study-item" :class="{ completed: item.done }">
           <label class="item-label">
-            <input v-model="item.done" type="checkbox" />
+            <input v-model="item.done" type="checkbox" :disabled="item.isUpdating" @change="updateStatus(item)" />
             <span class="custom-checkbox" aria-hidden="true">
               <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
                 <path d="m3.5 8 3 3 6-6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
@@ -78,11 +160,14 @@ function addItem() {
             </span>
             <span class="item-name">{{ item.name }}</span>
           </label>
-          <span class="item-status">{{ item.done ? 'Concluído' : 'Para estudar' }}</span>
+          <div class="item-meta">
+            <span class="item-subject">{{ item.subjectName }}</span>
+            <span class="item-status">{{ item.done ? 'Concluído' : 'Para estudar' }}</span>
+          </div>
         </li>
       </ul>
 
-      <div v-else class="empty-state">
+      <div v-else-if="!errorMessage" class="empty-state">
         <h2>Sua lista está vazia</h2>
         <p>Adicione uma matéria ou tópico para organizar seus próximos estudos.</p>
       </div>
@@ -164,6 +249,35 @@ function addItem() {
   color: var(--text);
   background: var(--bg);
   font-size: 11px;
+}
+
+.add-form select {
+  min-width: 150px;
+  min-height: 42px;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: var(--text);
+  background: var(--bg);
+  font-size: 10px;
+}
+
+.add-form select:disabled {
+  cursor: not-allowed;
+  opacity: .65;
+}
+
+.list-hint {
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-soft);
+  font-size: 10px;
+}
+
+.list-hint a {
+  margin-left: 5px;
+  color: var(--accent);
+  font-weight: 600;
 }
 
 .add-form input::placeholder {
@@ -250,6 +364,17 @@ function addItem() {
   font-size: 9px;
 }
 
+.item-meta {
+  display: grid;
+  justify-items: end;
+  gap: 5px;
+}
+
+.item-subject {
+  color: var(--muted);
+  font-size: 8px;
+}
+
 .completed .item-status {
   color: var(--accent);
   background: var(--accent-soft);
@@ -273,7 +398,8 @@ function addItem() {
     padding: 15px;
   }
 
-  .add-form .primary-button {
+  .add-form .primary-button,
+  .add-form select {
     width: 100%;
   }
 
