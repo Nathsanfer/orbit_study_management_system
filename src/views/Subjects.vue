@@ -3,11 +3,17 @@ import { computed, onMounted, ref } from 'vue';
 import SubjectCard from '@/components/SubjectCard.vue';
 import { createSubject as saveSubject, loadSubjects, subjects, subjectColors } from '@/data/subjects.js';
 import { getErrorMessage } from '@/lib/supabase.js';
+import {
+  defaultSubjectIconName,
+  getSubjectIcon,
+  subjectIconOptions,
+} from '@/lib/icons.js';
 
 const searchQuery = ref('');
 const showAddDialog = ref(false);
 const newSubjectName = ref('');
 const newSubjectColor = ref(subjectColors[0]);
+const newSubjectIcon = ref(defaultSubjectIconName);
 const isLoading = ref(true);
 const isSaving = ref(false);
 const errorMessage = ref('');
@@ -38,10 +44,11 @@ async function createSubject() {
   errorMessage.value = '';
   isSaving.value = true;
   try {
-    await saveSubject(name, newSubjectColor.value);
+    await saveSubject(name, newSubjectColor.value, newSubjectIcon.value);
     await loadSubjects();
     searchQuery.value = '';
     newSubjectName.value = '';
+    newSubjectIcon.value = defaultSubjectIconName;
     showAddDialog.value = false;
   } catch (error) {
     errorMessage.value = getErrorMessage(error);
@@ -135,6 +142,24 @@ function closeDialog() {
             required
             autofocus
           />
+
+          <span class="field-label icon-label">Escolha um ícone</span>
+          <div class="icon-options" role="group" aria-label="Ícone da matéria">
+            <button
+              v-for="icon in subjectIconOptions"
+              :key="icon.name"
+              class="icon-option"
+              :class="{ selected: newSubjectIcon === icon.name }"
+              type="button"
+              :title="icon.label"
+              :aria-label="`${icon.label} (${icon.name})`"
+              :aria-pressed="newSubjectIcon === icon.name"
+              @click="newSubjectIcon = icon.name"
+            >
+              <component :is="getSubjectIcon(icon.name)" :size="19" :stroke-width="1.7" />
+              <span>{{ icon.label }}</span>
+            </button>
+          </div>
 
           <span class="field-label color-label">Escolha uma cor</span>
           <div class="color-options" role="group" aria-label="Cor da matéria">
@@ -280,6 +305,8 @@ function closeDialog() {
 
 .subject-dialog {
   width: min(100%, 420px);
+  max-height: min(90vh, 680px);
+  overflow-y: auto;
   padding: 26px;
   border: 1px solid var(--border);
   border-radius: 15px;
@@ -342,6 +369,51 @@ function closeDialog() {
 
 .color-label {
   margin-top: 20px;
+}
+
+.icon-label {
+  margin-top: 20px;
+}
+
+.icon-options {
+  display: grid;
+  max-height: 225px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  overflow-y: auto;
+  margin-top: 10px;
+  padding: 2px;
+}
+
+.icon-option {
+  display: grid;
+  min-width: 0;
+  min-height: 53px;
+  align-content: center;
+  justify-items: center;
+  gap: 5px;
+  padding: 5px 3px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-soft);
+  background: var(--surface);
+  cursor: pointer;
+  transition: color .18s ease, border-color .18s ease, background .18s ease;
+}
+
+.icon-option span {
+  overflow: hidden;
+  max-width: 100%;
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.icon-option:hover,
+.icon-option.selected {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .color-options {

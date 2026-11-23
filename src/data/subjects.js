@@ -1,5 +1,6 @@
 import { ref } from 'vue';
 import { getSupabase } from '@/lib/supabase.js';
+import { defaultSubjectIconName, normalizeSubjectIconName } from '@/lib/icons.js';
 
 export const subjectColors = [
   '#b66b59',
@@ -28,7 +29,7 @@ function mapSubject(row, index = 0) {
     id: row.id,
     name: row.nome,
     description: row.descricao ?? '',
-    icon: row.icone || '✦',
+    icon: normalizeSubjectIconName(row.icone),
     color: row.cor || subjectColors[index % subjectColors.length],
     topics: (row.topicos ?? []).map((topic) => ({
       id: topic.id,
@@ -68,12 +69,12 @@ export async function loadSubject(id) {
   return data ? mapSubject(data) : null;
 }
 
-export async function createSubject(name, color) {
+export async function createSubject(name, color, iconName = defaultSubjectIconName) {
   const { data, error } = await getSupabase()
     .from('materias')
     .insert({
       nome: name,
-      icone: '✦',
+      icone: normalizeSubjectIconName(iconName),
       cor: color,
     })
     .select(subjectSelection)

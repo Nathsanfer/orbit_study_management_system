@@ -1,5 +1,6 @@
 import { getSupabase } from '@/lib/supabase.js';
 import { subjectColors } from '@/data/subjects.js';
+import { normalizeSubjectIconName } from '@/lib/icons.js';
 
 export async function loadStudySessions(start, end) {
   const { data, error } = await getSupabase()
@@ -19,7 +20,7 @@ export async function loadStudySessions(start, end) {
     topic: session.topicos.titulo,
     subject: {
       name: session.topicos.materias.nome,
-      icon: session.topicos.materias.icone || '✦',
+      icon: normalizeSubjectIconName(session.topicos.materias.icone),
       color: session.topicos.materias.cor || subjectColors[index % subjectColors.length],
     },
   }));
