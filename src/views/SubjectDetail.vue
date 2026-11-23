@@ -67,7 +67,12 @@ const completedTopics = computed(() =>
       </div>
 
       <div v-if="subject.topics.length" class="topics-list">
-        <article v-for="(topic, index) in subject.topics" :key="topic.name" class="topic-row">
+        <RouterLink
+          v-for="(topic, index) in subject.topics"
+          :key="topic.id"
+          class="topic-row"
+          :to="{ name: 'topic-detail', params: { subjectId: subject.id, topicId: topic.id } }"
+        >
           <span class="topic-status" aria-hidden="true">
             <svg v-if="topic.status === 'Concluído'" width="15" height="15" viewBox="0 0 16 16" fill="none">
               <path d="m3.5 8 3 3 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
@@ -79,7 +84,7 @@ const completedTopics = computed(() =>
             <span>Materiais e anotações em breve</span>
           </div>
           <span class="topic-state" :class="{ done: topic.status === 'Concluído' }">{{ topic.status }}</span>
-        </article>
+        </RouterLink>
       </div>
       <div v-else class="detail-empty">
         Ainda não há tópicos nesta matéria. Em breve você poderá organizá-los por aqui.

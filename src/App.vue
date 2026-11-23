@@ -25,9 +25,9 @@ import Navigation from './components/Navigation.vue';
 }
 
 .page-content {
-  width: min(calc(100% - 238px), 1420px);
+  width: min(calc(100% - 238px), 1680px);
   margin: 0 auto 0 238px;
-  padding: 41px clamp(26px, 4vw, 58px) 56px;
+  padding: 41px clamp(22px, 2.7vw, 42px) 56px;
 }
 
 @media (max-width: 720px) {

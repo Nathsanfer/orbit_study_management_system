@@ -46,6 +46,7 @@ const overallProgress = computed(() => {
 </template>
 
 <style scoped>
+
 .home-welcome {
   padding: clamp(24px, 4vw, 42px);
   border: 1px solid var(--border);

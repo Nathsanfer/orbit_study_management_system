@@ -27,6 +27,16 @@
         <span class="nav-link-copy"><span>Matérias</span><small>Sua jornada de estudos</small></span>
         <span class="nav-link-arrow" aria-hidden="true">→</span>
       </router-link>
+      <router-link to="/schedule" class="nav-link" exact-active-class="nav-link-active">
+        <span class="nav-link-icon" aria-hidden="true">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
+            <rect x="3.5" y="5" width="17" height="16" rx="2.5" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M7.5 3v4M16.5 3v4M3.5 9.5h17M8 13h3M8 16.5h3M14 13h2.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="nav-link-copy"><span>Cronograma</span><small>Planejamento semanal</small></span>
+        <span class="nav-link-arrow" aria-hidden="true">→</span>
+      </router-link>
     </div>
     <div class="sidebar-note">
       <span class="sidebar-note-mark" aria-hidden="true">✦</span>
