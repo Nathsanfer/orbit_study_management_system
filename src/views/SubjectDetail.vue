@@ -1,12 +1,17 @@
 <script setup>
 import { onMounted, ref, watch } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
-import { loadSubject } from '@/data/subjects.js';
+import { createTopic as saveTopic, loadSubject } from '@/data/subjects.js';
 import { getErrorMessage } from '@/lib/supabase.js';
 import { getSubjectIcon } from '@/lib/icons.js';
 
 const route = useRoute();
 const subject = ref(null);
+const showTopicDialog = ref(false);
+const newTopicName = ref('');
+const newTopicDescription = ref('');
+const isCreatingTopic = ref(false);
+const topicErrorMessage = ref('');
 const isLoading = ref(true);
 const errorMessage = ref('');
 
@@ -24,6 +29,62 @@ async function loadCurrentSubject() {
 
 onMounted(loadCurrentSubject);
 watch(() => route.params.id, loadCurrentSubject);
+
+function formatStudyDuration(totalMinutes) {
+  const minutes = Math.max(0, Math.floor(Number(totalMinutes) || 0));
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+
+  if (!hours) return `${remainingMinutes} min`;
+  return remainingMinutes ? `${hours}h ${remainingMinutes}min` : `${hours}h`;
+}
+
+function formatSessionStatus(status) {
+  if (typeof status !== 'string' || !status.trim()) return 'Sem sessões';
+
+  const label = status.trim().replaceAll('_', ' ');
+  return `${label[0].toLocaleUpperCase('pt-BR')}${label.slice(1)}`;
+}
+
+function openTopicDialog() {
+  topicErrorMessage.value = '';
+  showTopicDialog.value = true;
+}
+
+function closeTopicDialog() {
+  if (isCreatingTopic.value) return;
+
+  showTopicDialog.value = false;
+  newTopicName.value = '';
+  newTopicDescription.value = '';
+  topicErrorMessage.value = '';
+}
+
+async function createNewTopic() {
+  const name = newTopicName.value.trim();
+  if (!name) {
+    topicErrorMessage.value = 'Informe o nome do tópico.';
+    return;
+  }
+
+  topicErrorMessage.value = '';
+  isCreatingTopic.value = true;
+  try {
+    const topic = await saveTopic({
+      subjectId: subject.value.id,
+      name,
+      description: newTopicDescription.value.trim(),
+    });
+    subject.value.topics.push(topic);
+    showTopicDialog.value = false;
+    newTopicName.value = '';
+    newTopicDescription.value = '';
+  } catch (error) {
+    topicErrorMessage.value = getErrorMessage(error);
+  } finally {
+    isCreatingTopic.value = false;
+  }
+}
 </script>
 
 <template>
@@ -49,20 +110,12 @@ watch(() => route.params.id, loadCurrentSubject);
 
     <section class="detail-overview" aria-label="Resumo da matéria">
       <div class="overview-panel">
-        <p class="panel-label">Progresso dos estudos</p>
-        <div class="overview-progress">
-          <div
-            class="progress-track"
-            role="progressbar"
-            :aria-label="`Progresso em ${subject.name}`"
-            aria-valuemin="0"
-            aria-valuemax="100"
-            :aria-valuenow="subject.progress"
-          >
-            <div class="progress-fill" :style="{ width: `${subject.progress}%` }"></div>
-          </div>
-          <strong>{{ subject.progress }}%</strong>
+        <p class="panel-label">Tempo acumulado</p>
+        <div class="overview-time">
+          <strong>{{ formatStudyDuration(subject.totalStudyMinutes) }}</strong>
+          <span>de estudo registrado</span>
         </div>
+        <p class="overview-caption">Somando todas as sessões desta matéria</p>
       </div>
       <div class="study-panel">
         <span class="study-panel-icon" aria-hidden="true">
@@ -81,7 +134,15 @@ watch(() => route.params.id, loadCurrentSubject);
     <section class="topics-section">
       <div class="topics-heading">
         <h2>Seus tópicos</h2>
-        <span>Matéria <span aria-hidden="true">→</span> Tópicos</span>
+        <div class="topics-heading-actions">
+          <span class="topics-path">Matéria <span aria-hidden="true">→</span> Tópicos</span>
+          <button class="primary-button add-topic-button" type="button" @click="openTopicDialog">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+            </svg>
+            Novo tópico
+          </button>
+        </div>
       </div>
 
       <div v-if="subject.topics.length" class="topics-list">
@@ -98,12 +159,87 @@ watch(() => route.params.id, loadCurrentSubject);
             <strong>{{ topic.name }}</strong>
             <span>{{ topic.description || 'Sem descrição cadastrada.' }}</span>
           </div>
+          <div class="topic-meta">
+            <span class="topic-duration">{{ formatStudyDuration(topic.studyMinutes) }}</span>
+            <span
+              class="topic-state"
+              :class="{ 'no-sessions': !topic.studyStatus }"
+              :title="formatSessionStatus(topic.studyStatus)"
+            >
+              {{ formatSessionStatus(topic.studyStatus) }}
+            </span>
+          </div>
         </RouterLink>
       </div>
       <div v-else class="detail-empty">
         Nenhum tópico cadastrado nesta matéria.
       </div>
     </section>
+
+    <div
+      v-if="showTopicDialog"
+      class="topic-modal-backdrop"
+      @click.self="closeTopicDialog"
+      @keydown.esc="closeTopicDialog"
+    >
+      <section
+        class="topic-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="new-topic-title"
+      >
+        <div class="topic-modal-heading">
+          <div>
+            <h2 id="new-topic-title">Novo tópico</h2>
+            <p>Organize mais um assunto dentro de {{ subject.name }}.</p>
+          </div>
+          <button
+            class="topic-modal-close"
+            type="button"
+            aria-label="Fechar"
+            :disabled="isCreatingTopic"
+            @click="closeTopicDialog"
+          >
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="m4 4 8 8m0-8-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+            </svg>
+          </button>
+        </div>
+
+        <form class="topic-form" @submit.prevent="createNewTopic">
+          <p v-if="topicErrorMessage" class="request-error" role="alert">{{ topicErrorMessage }}</p>
+          <label for="new-topic-name">Nome do tópico</label>
+          <input
+            id="new-topic-name"
+            v-model="newTopicName"
+            type="text"
+            placeholder="Ex.: Introdução à matéria"
+            required
+            autofocus
+          />
+          <label for="new-topic-description">Descrição <span>(opcional)</span></label>
+          <textarea
+            id="new-topic-description"
+            v-model="newTopicDescription"
+            rows="4"
+            placeholder="O que você vai estudar neste tópico?"
+          ></textarea>
+          <div class="topic-modal-actions">
+            <button
+              class="secondary-button"
+              type="button"
+              :disabled="isCreatingTopic"
+              @click="closeTopicDialog"
+            >
+              Cancelar
+            </button>
+            <button class="primary-button" type="submit" :disabled="isCreatingTopic">
+              {{ isCreatingTopic ? 'Criando...' : 'Criar tópico' }}
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
   </section>
 
   <section v-else-if="isLoading" class="empty-state" role="status">Carregando matéria...</section>
@@ -187,31 +323,27 @@ watch(() => route.params.id, loadCurrentSubject);
   text-transform: uppercase;
 }
 
-.overview-progress {
+.overview-time {
   display: flex;
-  align-items: center;
-  gap: 16px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-top: 15px;
 }
 
-.progress-track {
-  height: 7px;
-  flex: 1;
-  overflow: hidden;
-  border-radius: 6px;
-  background: var(--track);
-}
-
-.progress-fill {
-  height: 100%;
-  border-radius: inherit;
-  background: var(--subject-color);
-  transition: width .3s ease;
-}
-
-.overview-progress strong {
+.overview-time strong {
   color: var(--subject-color);
-  font: 500 25px var(--font-title);
+  font: 500 clamp(25px, 3vw, 32px)/1.1 var(--font-title);
+}
+
+.overview-time span,
+.overview-caption {
+  color: var(--text-soft);
+  font-size: 10px;
+}
+
+.overview-caption {
+  margin: 9px 0 0;
 }
 
 .study-panel {
@@ -251,14 +383,26 @@ watch(() => route.params.id, loadCurrentSubject);
   margin-bottom: 13px;
 }
 
+.topics-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
 .topics-heading h2 {
   margin: 0;
   color: var(--text);
   font: 500 24px var(--font-title);
 }
 
-.topics-heading span {
+.topics-path {
   color: var(--muted);
+  font-size: 10px;
+}
+
+.add-topic-button {
+  min-height: 36px;
+  padding-inline: 12px;
   font-size: 10px;
 }
 
@@ -269,10 +413,10 @@ watch(() => route.params.id, loadCurrentSubject);
 
 .topic-row {
   display: flex;
-  min-height: 69px;
+  min-height: 78px;
   align-items: center;
-  gap: 14px;
-  padding: 13px 16px;
+  gap: 12px;
+  padding: 13px 15px;
   border: 1px solid var(--border);
   border-radius: 11px;
   background: var(--surface);
@@ -311,23 +455,44 @@ watch(() => route.params.id, loadCurrentSubject);
 
 .topic-copy span {
   display: block;
+  overflow: hidden;
   margin-top: 3px;
   color: var(--muted);
   font-size: 9px;
-}
-
-.topic-state {
-  padding: 5px 8px;
-  border-radius: 20px;
-  color: var(--text-soft);
-  background: var(--surface-soft);
-  font-size: 9px;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.topic-state.done {
+.topic-meta {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.topic-duration {
+  color: var(--text-soft);
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.topic-state {
+  max-width: 130px;
+  overflow: hidden;
+  padding: 5px 8px;
+  border-radius: 20px;
   color: var(--subject-color);
   background: color-mix(in srgb, var(--subject-color) 10%, var(--surface));
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topic-state.no-sessions {
+  color: var(--muted);
+  background: var(--surface-soft);
 }
 
 .detail-empty {
@@ -339,15 +504,127 @@ watch(() => route.params.id, loadCurrentSubject);
   text-align: center;
 }
 
+.topic-modal-backdrop {
+  position: fixed;
+  z-index: 30;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow-y: auto;
+  padding: 20px;
+  background: rgb(31 20 34 / 48%);
+  backdrop-filter: blur(4px);
+}
+
+.topic-modal {
+  width: min(100%, 460px);
+  max-height: min(90vh, 620px);
+  overflow-y: auto;
+  padding: 25px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: 0 24px 70px rgb(21 12 23 / 25%);
+}
+
+.topic-modal-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.topic-modal-heading h2 {
+  margin: 0;
+  color: var(--text);
+  font: 500 25px/1.2 var(--font-title);
+}
+
+.topic-modal-heading p {
+  margin: 6px 0 0;
+  color: var(--text-soft);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.topic-modal-close {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text-soft);
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.topic-modal-close:disabled {
+  cursor: not-allowed;
+  opacity: .6;
+}
+
+.topic-form {
+  display: grid;
+  gap: 8px;
+}
+
+.topic-form label {
+  margin-top: 7px;
+  color: var(--text-soft);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.topic-form label span {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.topic-form input,
+.topic-form textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  background: var(--bg);
+  font: inherit;
+  font-size: 12px;
+}
+
+.topic-form input {
+  height: 42px;
+  padding: 0 12px;
+}
+
+.topic-form textarea {
+  min-height: 96px;
+  padding: 10px 12px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.topic-form input:focus,
+.topic-form textarea:focus {
+  border-color: var(--subject-color);
+  outline: 0;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--subject-color) 17%, transparent);
+}
+
+.topic-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  margin-top: 15px;
+}
+
 :global(:root[data-theme='dark']) .detail-subject-icon,
 :global(:root[data-theme='dark']) .study-panel-icon,
 :global(:root[data-theme='dark']) .topic-status,
-:global(:root[data-theme='dark']) .topic-state.done {
+:global(:root[data-theme='dark']) .topic-state:not(.no-sessions) {
   color: color-mix(in srgb, var(--subject-color) 60%, white);
-}
-
-:global(:root[data-theme='dark']) .progress-fill {
-  background: color-mix(in srgb, var(--subject-color) 60%, white);
 }
 
 @media (max-width: 720px) {
@@ -370,6 +647,28 @@ watch(() => route.params.id, loadCurrentSubject);
   .topic-row {
     gap: 10px;
     padding-inline: 11px;
+  }
+
+  .topic-meta {
+    max-width: 88px;
+  }
+
+  .topic-state {
+    max-width: 88px;
+  }
+
+  .topics-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .topics-heading-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .topic-modal {
+    padding: 21px;
   }
 }
 </style>

@@ -481,7 +481,13 @@ function closeDialog() {
   gap: 9px;
 }
 
-@media (max-width: 1050px) {
+@media(min-width: 1550px) {
+  .cards-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1150px) {
   .cards-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

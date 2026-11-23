@@ -20,36 +20,62 @@ export const subjectColors = [
 
 export const subjects = ref([]);
 
+const subjectFields = 'id,nome,descricao,icone,cor';
+const topicFields = `
+  id,titulo,descricao,conteudo,data_criacao,data_atualizacao,
+  materiais_topicos(id,nome_arquivo,tipo_arquivo,caminho_arquivo)
+`;
 const subjectSelection = `
-  id,nome,descricao,icone,cor,
-  topicos(
-    id,titulo,descricao,conteudo,data_criacao,data_atualizacao,
-    materiais_topicos(id,nome_arquivo,tipo_arquivo,caminho_arquivo)
-  ),
+  ${subjectFields},
+  topicos(${topicFields}),
   itens_lista(status)
 `;
+const subjectDetailSelection = `
+  ${subjectFields},
+  topicos(${topicFields},sessoes_estudos(data_inicio,duracao,status)),
+  itens_lista(status)
+`;
+
+function mapTopic(topic) {
+  const sessions = topic.sessoes_estudos ?? [];
+  const latestSession = sessions.reduce((latest, session) => {
+    if (!latest || Date.parse(session.data_inicio) > Date.parse(latest.data_inicio)) {
+      return session;
+    }
+    return latest;
+  }, null);
+
+  return {
+    id: topic.id,
+    name: topic.titulo,
+    description: topic.descricao ?? '',
+    content: topic.conteudo ?? {},
+    materials: (topic.materiais_topicos ?? []).map((material) => ({
+      id: material.id,
+      title: material.nome_arquivo,
+      type: material.tipo_arquivo,
+      description: material.caminho_arquivo,
+    })),
+    studyMinutes: sessions.reduce((total, session) => {
+      const duration = Number(session.duracao);
+      return total + (Number.isFinite(duration) ? duration : 0);
+    }, 0),
+    studyStatus: latestSession?.status ?? null,
+  };
+}
 
 function mapSubject(row, index = 0) {
   const checklist = row.itens_lista ?? [];
   const completed = checklist.filter((item) => item.status === 'concluido').length;
+  const topics = (row.topicos ?? []).map(mapTopic);
   return {
     id: row.id,
     name: row.nome,
     description: row.descricao ?? '',
     icon: normalizeSubjectIconName(row.icone),
     color: row.cor || subjectColors[index % subjectColors.length],
-    topics: (row.topicos ?? []).map((topic) => ({
-      id: topic.id,
-      name: topic.titulo,
-      description: topic.descricao ?? '',
-      content: topic.conteudo ?? {},
-      materials: (topic.materiais_topicos ?? []).map((material) => ({
-        id: material.id,
-        title: material.nome_arquivo,
-        type: material.tipo_arquivo,
-        description: material.caminho_arquivo,
-      })),
-    })),
+    topics,
+    totalStudyMinutes: topics.reduce((total, topic) => total + topic.studyMinutes, 0),
     progress: checklist.length ? Math.round((completed / checklist.length) * 100) : 0,
   };
 }
@@ -68,7 +94,7 @@ export async function loadSubjects() {
 export async function loadSubject(id) {
   const { data, error } = await getSupabase()
     .from('materias')
-    .select(subjectSelection)
+    .select(subjectDetailSelection)
     .eq('id', id)
     .maybeSingle();
   if (error) throw error;
@@ -95,4 +121,20 @@ export async function createSubject({
   if (error) throw error;
 
   return mapSubject(data, subjects.value.length);
+}
+
+export async function createTopic({ subjectId, name, description }) {
+  const { data, error } = await getSupabase()
+    .from('topicos')
+    .insert({
+      id_materia: subjectId,
+      titulo: name,
+      descricao: description || null,
+      conteudo: {},
+    })
+    .select('id,titulo,descricao,conteudo,data_criacao,data_atualizacao')
+    .single();
+  if (error) throw error;
+
+  return mapTopic(data);
 }
