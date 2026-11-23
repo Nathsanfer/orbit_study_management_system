@@ -47,3 +47,5 @@ npm run build
 6. Start the app with `npm run dev`, then create an account from the sign-in page.
 
 The app does not seed demonstration records. Since the current schema has no owner column for study records, all authenticated accounts see and edit the same matters, topics, list items, sessions, and essays.
+
+Matéria icons use Lucide Vue components registered by name in `src/lib/icons.js`. The `materias.icone` column stores the registry key (for example, `BookOpen` or `Atom`); no database schema change is needed.
