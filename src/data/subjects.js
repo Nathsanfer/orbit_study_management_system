@@ -3,12 +3,19 @@ import { getSupabase } from '@/lib/supabase.js';
 import { defaultSubjectIconName, normalizeSubjectIconName } from '@/lib/icons.js';
 
 export const subjectColors = [
-  '#b66b59',
   '#a66f7d',
+  '#BC7C8C',
   '#66866b',
+  '#5D8E89',
   '#5d8490',
+  '#7186A6',
+  '#8E7AAE',
+  '#89647A',
+  '#b66b59',
   '#b47856',
+  '#C1A16B',
   '#a2883f',
+  '#8D6F5E',
 ];
 
 export const subjects = ref([]);
@@ -69,11 +76,17 @@ export async function loadSubject(id) {
   return data ? mapSubject(data) : null;
 }
 
-export async function createSubject(name, color, iconName = defaultSubjectIconName) {
+export async function createSubject({
+  name,
+  description,
+  color,
+  iconName = defaultSubjectIconName,
+}) {
   const { data, error } = await getSupabase()
     .from('materias')
     .insert({
       nome: name,
+      descricao: description,
       icone: normalizeSubjectIconName(iconName),
       cor: color,
     })

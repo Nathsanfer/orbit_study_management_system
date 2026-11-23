@@ -19,34 +19,23 @@ defineProps({
       <span class="subject-icon" aria-hidden="true">
         <component :is="getSubjectIcon(subject.icon)" :size="21" :stroke-width="1.7" />
       </span>
-      <span v-if="subject.progress === 100" class="completion-badge">
-        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-          <path d="m3.5 8 3 3 6-6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+      <span class="open-icon" aria-hidden="true">
+        <svg viewBox="0 0 20 20" fill="none">
+          <path d="M5 15 15 5M6 5h9v9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
-        Concluída
       </span>
     </div>
 
     <h2 class="subject-name">{{ subject.name }}</h2>
-    <p class="topic-count">{{ subject.topics.length }} tópicos para explorar</p>
-
-    <div class="progress-area">
-      <div
-        class="progress-track"
-        role="progressbar"
-        :aria-label="`Progresso em ${subject.name}`"
-        aria-valuemin="0"
-        aria-valuemax="100"
-        :aria-valuenow="subject.progress"
-      >
-        <div class="progress-fill" :style="{ width: `${subject.progress}%` }"></div>
-      </div>
-      <span class="progress-label">{{ subject.progress }}%</span>
-    </div>
+    <p class="subject-description">
+      {{ subject.description || 'Nenhuma descrição informada.' }}
+    </p>
 
     <div class="card-footer">
-      <span>{{ subject.progress === 100 ? 'Jornada completa' : 'Progresso de estudo' }}</span>
-      <span class="card-open">Ver tópicos <span aria-hidden="true">→</span></span>
+      <span class="topic-count">
+        {{ subject.topics.length }} {{ subject.topics.length === 1 ? 'tópico' : 'tópicos' }}
+      </span>
+      <span class="card-open">Ver matéria <span aria-hidden="true">→</span></span>
     </div>
   </RouterLink>
 </template>
@@ -54,125 +43,137 @@ defineProps({
 <style scoped>
 .subject-card {
   position: relative;
+  isolation: isolate;
   display: flex;
-  min-height: 206px;
+  min-height: 232px;
   flex-direction: column;
   overflow: hidden;
-  padding: 19px 19px 17px;
+  padding: 20px;
   border: 1px solid var(--border);
-  border-radius: 13px;
-  background: var(--surface);
+  border-radius: 16px;
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--subject-color) 7%, var(--surface)),
+    var(--surface) 58%
+  );
   box-shadow: var(--shadow-card);
-  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease;
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+
+.subject-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.subject-card::before {
+  position: absolute;
+  z-index: 1;
+  top: 20px;
+  bottom: 20px;
+  left: 0;
+  width: 3px;
+  border-radius: 0 4px 4px 0;
+  background: var(--subject-color);
+  content: '';
 }
 
 .subject-card::after {
   position: absolute;
-  right: -23px;
-  bottom: -34px;
-  width: 104px;
-  height: 104px;
+  z-index: 0;
+  top: -55px;
+  right: -45px;
+  width: 150px;
+  height: 150px;
   border: 1px solid color-mix(in srgb, var(--subject-color) 20%, transparent);
   border-radius: 50%;
+  background: color-mix(in srgb, var(--subject-color) 4%, transparent);
   content: '';
   pointer-events: none;
 }
 
 .subject-card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-4px);
   border-color: color-mix(in srgb, var(--subject-color) 45%, var(--border));
   box-shadow: var(--shadow-hover);
 }
 
+.subject-card:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--subject-color) 45%, transparent);
+  outline-offset: 3px;
+}
+
 .card-topline {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 10px;
 }
 
 .subject-icon {
   display: grid;
-  width: 43px;
-  height: 43px;
+  width: 48px;
+  height: 48px;
   flex: 0 0 auto;
   place-items: center;
   border: 1px solid color-mix(in srgb, var(--subject-color) 20%, transparent);
-  border-radius: 12px;
+  border-radius: 14px;
   color: var(--subject-color);
   background: color-mix(in srgb, var(--subject-color) 11%, var(--surface));
-  font: 600 18px/1 var(--font-title);
 }
 
-.completion-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 8px;
-  border-radius: 20px;
+.open-icon {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--subject-color) 18%, var(--border));
+  border-radius: 50%;
   color: var(--subject-color);
-  background: color-mix(in srgb, var(--subject-color) 10%, var(--surface));
-  font-size: 9px;
-  font-weight: 600;
-  white-space: nowrap;
+  background: color-mix(in srgb, var(--subject-color) 7%, var(--surface));
+  transition: transform .2s ease, background .2s ease;
 }
 
-.completion-badge svg {
-  width: 11px;
-  height: 11px;
+.open-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.subject-card:hover .open-icon {
+  transform: translate(2px, -2px);
+  background: color-mix(in srgb, var(--subject-color) 14%, var(--surface));
 }
 
 .subject-name {
-  margin: 18px 0 5px;
+  margin: 19px 0 8px;
   color: var(--text);
-  font: 500 21px/1.2 var(--font-title);
+  font: 500 22px/1.2 var(--font-title);
   letter-spacing: -.02em;
 }
 
-.topic-count {
-  margin: 0;
-  color: var(--muted);
-  font-size: 10px;
-}
-
-.progress-area {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  margin-top: auto;
-  padding-top: 21px;
-}
-
-.progress-track {
-  height: 5px;
-  flex: 1;
+.subject-description {
+  display: -webkit-box;
   overflow: hidden;
-  border-radius: 6px;
-  background: var(--track);
-}
-
-.progress-fill {
-  height: 100%;
-  border-radius: inherit;
-  background: var(--subject-color);
-  transition: width .3s ease;
-}
-
-.progress-label {
-  min-width: 31px;
+  margin: 0;
   color: var(--text-soft);
-  font-size: 10px;
-  font-weight: 600;
-  text-align: right;
+  font-size: 12px;
+  line-height: 1.6;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
 
 .card-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 10px;
-  color: var(--muted);
-  font-size: 9px;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 17px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
+}
+
+.topic-count {
+  color: var(--text-soft);
+  font-size: 10px;
 }
 
 .card-open {
@@ -180,6 +181,7 @@ defineProps({
   align-items: center;
   gap: 5px;
   color: var(--subject-color);
+  font-size: 10px;
   font-weight: 600;
   transition: gap .18s ease;
 }
@@ -189,19 +191,15 @@ defineProps({
 }
 
 :global(:root[data-theme='dark']) .subject-icon,
-:global(:root[data-theme='dark']) .completion-badge,
+:global(:root[data-theme='dark']) .open-icon,
 :global(:root[data-theme='dark']) .card-open {
   color: color-mix(in srgb, var(--subject-color) 60%, white);
 }
 
-:global(:root[data-theme='dark']) .progress-fill {
-  background: color-mix(in srgb, var(--subject-color) 60%, white);
-}
-
 @media (max-width: 720px) {
   .subject-card {
-    min-height: 196px;
-    padding: 15px;
+    min-height: 220px;
+    padding: 17px;
   }
 }
 </style>

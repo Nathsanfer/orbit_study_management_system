@@ -12,6 +12,7 @@ import {
 const searchQuery = ref('');
 const showAddDialog = ref(false);
 const newSubjectName = ref('');
+const newSubjectDescription = ref('');
 const newSubjectColor = ref(subjectColors[0]);
 const newSubjectIcon = ref(defaultSubjectIconName);
 const isLoading = ref(true);
@@ -39,15 +40,22 @@ const filteredSubjects = computed(() => {
 
 async function createSubject() {
   const name = newSubjectName.value.trim();
+  const description = newSubjectDescription.value.trim();
   if (!name) return;
 
   errorMessage.value = '';
   isSaving.value = true;
   try {
-    await saveSubject(name, newSubjectColor.value, newSubjectIcon.value);
+    await saveSubject({
+      name,
+      description,
+      color: newSubjectColor.value,
+      iconName: newSubjectIcon.value,
+    });
     await loadSubjects();
     searchQuery.value = '';
     newSubjectName.value = '';
+    newSubjectDescription.value = '';
     newSubjectIcon.value = defaultSubjectIconName;
     showAddDialog.value = false;
   } catch (error) {
@@ -142,6 +150,15 @@ function closeDialog() {
             required
             autofocus
           />
+          <label class="field-label2" for="subject-description">Descrição</label>
+          <textarea
+          id="subject-description"
+          v-model="newSubjectDescription"
+          class="dialog-textarea"
+          placeholder="Adicione uma descrição"
+          rows="3"
+          required
+          ></textarea>
 
           <span class="field-label icon-label">Escolha um ícone</span>
           <div class="icon-options" role="group" aria-label="Ícone da matéria">
@@ -304,8 +321,8 @@ function closeDialog() {
 }
 
 .subject-dialog {
-  width: min(100%, 420px);
-  max-height: min(90vh, 680px);
+  width: min(100%, 500px);
+  max-height: min(90vh, 696px);
   overflow-y: auto;
   padding: 26px;
   border: 1px solid var(--border);
@@ -350,10 +367,19 @@ function closeDialog() {
 
 .field-label {
   display: block;
-  margin-bottom: 7px;
+  margin-bottom: 9px;
   color: var(--text-soft);
   font-size: 10px;
   font-weight: 600;
+}
+
+.field-label2 {
+  display: block;
+  margin-bottom: 9px;
+  color: var(--text-soft);
+  font-size: 10px;
+  font-weight: 600;
+  margin-top: 9px;
 }
 
 .dialog-input {
@@ -367,17 +393,28 @@ function closeDialog() {
   font-size: 12px;
 }
 
+.dialog-textarea {
+  width: 100%;
+  height: 58px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  background: var(--bg);
+  font-size: 12px;
+}
+
 .color-label {
-  margin-top: 20px;
+  margin-top: 10px;
 }
 
 .icon-label {
-  margin-top: 20px;
+  margin-top: 10px;
 }
 
 .icon-options {
   display: grid;
-  max-height: 225px;
+  max-height: 234px;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 6px;
   overflow-y: auto;
