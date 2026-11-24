@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { createEssay as saveEssay, loadEssays } from '@/data/essays.js';
 import { getErrorMessage } from '@/lib/supabase.js';
 
@@ -11,6 +11,21 @@ const title = ref('');
 const theme = ref('');
 const text = ref('');
 const errorMessage = ref('');
+const searchQuery = ref('');
+
+const filteredEssays = computed(() => {
+  const query = searchQuery.value.trim().toLocaleLowerCase('pt-BR');
+  if (!query) return essays.value;
+
+  return essays.value.filter((essay) => {
+    const titleText = essay.title?.toLocaleLowerCase('pt-BR') ?? '';
+    const themeText = essay.theme?.toLocaleLowerCase('pt-BR') ?? '';
+    const excerptText = essay.excerpt?.toLocaleLowerCase('pt-BR') ?? '';
+    return titleText.includes(query)
+      || themeText.includes(query)
+      || excerptText.includes(query);
+  });
+});
 
 onMounted(loadData);
 
@@ -55,19 +70,39 @@ async function addEssay() {
     </nav>
 
     <header class="essays-header">
-      <p class="page-eyebrow">Escrever também é aprender</p>
-      <h1 class="page-title">Minhas redações</h1>
-      <p class="page-subtitle">Relembre seus temas, acompanhe as notas e veja os detalhes de cada avaliação.</p>
-      <button class="primary-button add-essay-button" type="button" @click="showAddDialog = true">
-        <span aria-hidden="true">+</span> Nova redação
-      </button>
+      <div class="header-left">
+        <p class="page-eyebrow">Escrever também é aprender</p>
+        <h1 class="page-title">Minhas redações</h1>
+        <p class="page-subtitle">Relembre seus temas, acompanhe as notas e veja os detalhes de cada avaliação.</p>
+      </div>
+      <div class="header-right">
+        <label class="search-wrap">
+          <svg class="search-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.6" />
+            <path d="m16 16 4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+          </svg>
+          <input
+            v-model="searchQuery"
+            class="search"
+            type="search"
+            placeholder="Buscar redação..."
+            aria-label="Buscar redação"
+          />
+        </label>
+        <button class="add-btn" type="button" @click="showAddDialog = true">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+          </svg>
+          Nova redação
+        </button>
+      </div>
     </header>
 
     <p v-if="errorMessage && !showAddDialog" class="request-error" role="alert">{{ errorMessage }}</p>
     <div v-if="isLoading" class="empty-state" role="status">Carregando redações...</div>
     <div class="essay-grid">
       <RouterLink
-        v-for="essay in essays"
+        v-for="essay in filteredEssays"
         :key="essay.id"
         class="essay-card"
         :to="{ name: 'essay-detail', params: { id: essay.id } }"
@@ -90,6 +125,10 @@ async function addEssay() {
         <h2>Nenhuma redação cadastrada</h2>
         <p>Adicione uma redação para acompanhar o texto e as avaliações.</p>
         <button class="primary-button" type="button" @click="showAddDialog = true">Adicionar redação</button>
+      </div>
+      <div v-else-if="!isLoading && filteredEssays.length === 0 && !errorMessage" class="empty-state">
+        <h2>Nenhuma redação encontrada</h2>
+        <p>Tente buscar pelo título ou tema da redação.</p>
       </div>
     </div>
 
@@ -124,8 +163,15 @@ async function addEssay() {
 
 <style scoped>
 .essays-header {
-  position: relative;
-  margin-bottom: 28px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 34px;
+}
+
+.header-left {
+  min-width: 220px;
 }
 
 .page-title {
@@ -137,14 +183,81 @@ async function addEssay() {
 
 .page-subtitle {
   max-width: 540px;
-  margin: 9px 0 0;
+  margin: 10px 0 0;
   color: var(--text-soft);
-  font-size: 12px;
-  line-height: 1.6;
+  font-size: 13px;
+  line-height: 1.65;
 }
 
-.add-essay-button {
-  margin-top: 15px;
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.search-wrap {
+  position: relative;
+  display: flex;
+  width: min(255px, 27vw);
+  height: 42px;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 13px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.search {
+  width: 100%;
+  height: 100%;
+  padding: 0 13px 0 39px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: var(--text);
+  background: var(--surface);
+  font-size: 11px;
+  transition: border-color .18s ease, box-shadow .18s ease;
+}
+
+.search::placeholder {
+  color: var(--muted);
+}
+
+.search:focus {
+  border-color: var(--c-lavender);
+  outline: 0;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-lavender) 18%, transparent);
+}
+
+.add-btn {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform .18s ease, background .18s ease, box-shadow .18s ease;
+}
+
+.add-btn:hover {
+  transform: translateY(-1px);
+  background: var(--accent-hover);
+  box-shadow: 0 5px 14px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+:global(:root[data-theme='dark']) .add-btn {
+  color: #241a20;
 }
 
 .essay-grid {
@@ -349,11 +462,55 @@ async function addEssay() {
   .essay-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .essays-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .header-right {
+    width: 100%;
+  }
+
+  .search-wrap {
+    width: min(100%, 340px);
+  }
 }
 
 @media (max-width: 600px) {
   .essay-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .essays-header {
+    gap: 19px;
+    margin-bottom: 25px;
+  }
+
+  .header-right {
+    align-items: stretch;
+  }
+
+  .search-wrap {
+    flex: 1;
+  }
+
+  .add-btn {
+    padding-inline: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-right {
+    flex-direction: column;
+  }
+
+  .search-wrap {
+    width: 100%;
+  }
+
+  .add-btn {
+    width: 100%;
   }
 }
 </style>
