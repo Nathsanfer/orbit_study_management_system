@@ -81,7 +81,10 @@ const weeklyHours = computed(() => (weeklyMinutes.value / 60).toLocaleString('pt
 const weeklyDuration = computed(() => `${weeklyHours.value} horas registradas`);
 const sessionTime = (date) => date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 function getSessionEnd(session) {
-  const end = session.endedAt ?? new Date(session.startedAt.getTime() + session.minutes * 60_000);
+  const end = session.endedAt
+    ?? (session.status === 'em_andamento'
+      ? new Date()
+      : new Date(session.startedAt.getTime() + session.minutes * 60_000));
   return sessionTime(end);
 }
 

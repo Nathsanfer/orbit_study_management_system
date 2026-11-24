@@ -1,7 +1,14 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import SubjectCard from '@/components/SubjectCard.vue';
-import { createSubject as saveSubject, loadSubjects, subjects, subjectColors } from '@/data/subjects.js';
+import {
+  createSubject as saveSubject,
+  deleteSubject as removeSubject,
+  loadSubjects,
+  subjects,
+  subjectColors,
+  updateSubject as saveSubjectChanges,
+} from '@/data/subjects.js';
 import { getErrorMessage } from '@/lib/supabase.js';
 import {
   defaultSubjectIconName,
@@ -11,13 +18,18 @@ import {
 
 const searchQuery = ref('');
 const showAddDialog = ref(false);
+const editingSubject = ref(null);
+const showDeleteDialog = ref(false);
+const subjectToDelete = ref(null);
 const newSubjectName = ref('');
 const newSubjectDescription = ref('');
 const newSubjectColor = ref(subjectColors[0]);
 const newSubjectIcon = ref(defaultSubjectIconName);
 const isLoading = ref(true);
 const isSaving = ref(false);
+const isDeleting = ref(false);
 const errorMessage = ref('');
+const deleteErrorMessage = ref('');
 
 onMounted(async () => {
   try {
@@ -39,6 +51,7 @@ const filteredSubjects = computed(() => {
 });
 
 async function createSubject() {
+  const subjectToEdit = editingSubject.value;
   const name = newSubjectName.value.trim();
   const description = newSubjectDescription.value.trim();
   if (!name) return;
@@ -46,18 +59,21 @@ async function createSubject() {
   errorMessage.value = '';
   isSaving.value = true;
   try {
-    await saveSubject({
+    const values = {
       name,
       description,
       color: newSubjectColor.value,
       iconName: newSubjectIcon.value,
-    });
+    };
+    if (subjectToEdit) {
+      await saveSubjectChanges({ id: subjectToEdit.id, ...values });
+    } else {
+      await saveSubject(values);
+    }
     await loadSubjects();
     searchQuery.value = '';
-    newSubjectName.value = '';
-    newSubjectDescription.value = '';
-    newSubjectIcon.value = defaultSubjectIconName;
     showAddDialog.value = false;
+    editingSubject.value = null;
   } catch (error) {
     errorMessage.value = getErrorMessage(error);
   } finally {
@@ -65,8 +81,71 @@ async function createSubject() {
   }
 }
 
+function openAddDialog() {
+  editingSubject.value = null;
+  newSubjectName.value = '';
+  newSubjectDescription.value = '';
+  newSubjectColor.value = subjectColors[0];
+  newSubjectIcon.value = defaultSubjectIconName;
+  errorMessage.value = '';
+  showAddDialog.value = true;
+}
+
+function openEditDialog(subject) {
+  editingSubject.value = subject;
+  newSubjectName.value = subject.name;
+  newSubjectDescription.value = subject.description ?? '';
+  newSubjectColor.value = subject.color ?? subjectColors[0];
+  newSubjectIcon.value = subject.icon ?? defaultSubjectIconName;
+  errorMessage.value = '';
+  showAddDialog.value = true;
+}
+
 function closeDialog() {
+  if (isSaving.value) return;
   showAddDialog.value = false;
+  editingSubject.value = null;
+}
+
+function openDeleteDialog(subject) {
+  subjectToDelete.value = subject;
+  deleteErrorMessage.value = '';
+  showDeleteDialog.value = true;
+}
+
+function closeDeleteDialog() {
+  if (isDeleting.value) return;
+  showDeleteDialog.value = false;
+  subjectToDelete.value = null;
+  deleteErrorMessage.value = '';
+}
+
+async function confirmDeleteSubject() {
+  if (!subjectToDelete.value || isDeleting.value) return;
+
+  const subjectId = subjectToDelete.value.id;
+  isDeleting.value = true;
+  deleteErrorMessage.value = '';
+  errorMessage.value = '';
+  try {
+    const result = await removeSubject(subjectId);
+    showDeleteDialog.value = false;
+    subjectToDelete.value = null;
+
+    const warnings = result.assetCleanupErrors.map(
+      ({ message }) => `Não foi possível remover uma ou mais imagens do resumo: ${message}`,
+    );
+    try {
+      await loadSubjects();
+    } catch (error) {
+      warnings.push(`A matéria foi excluída, mas a lista não pôde ser atualizada: ${getErrorMessage(error)}`);
+    }
+    if (warnings.length) errorMessage.value = warnings.join(' ');
+  } catch (error) {
+    deleteErrorMessage.value = getErrorMessage(error);
+  } finally {
+    isDeleting.value = false;
+  }
 }
 </script>
 
@@ -98,7 +177,7 @@ function closeDialog() {
             aria-label="Buscar matéria"
           />
         </label>
-        <button class="add-btn" type="button" @click="showAddDialog = true">
+        <button class="add-btn" type="button" @click="openAddDialog">
           <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
             <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
           </svg>
@@ -111,7 +190,13 @@ function closeDialog() {
 
     <div v-if="isLoading" class="empty-state" role="status">Carregando matérias...</div>
     <div v-else class="cards-grid">
-      <SubjectCard v-for="subject in filteredSubjects" :key="subject.id" :subject="subject" />
+      <SubjectCard
+        v-for="subject in filteredSubjects"
+        :key="subject.id"
+        :subject="subject"
+        @edit="openEditDialog"
+        @delete="openDeleteDialog"
+      />
       <div v-if="filteredSubjects.length === 0 && !errorMessage" class="empty-state">
         <h2>Nenhuma matéria por aqui</h2>
         <p>Tente outro nome ou crie uma nova matéria para começar.</p>
@@ -123,12 +208,16 @@ function closeDialog() {
         class="subject-dialog"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="new-subject-title"
+        aria-labelledby="subject-dialog-title"
       >
         <div class="dialog-heading">
           <div>
-            <h2 id="new-subject-title" class="dialog-title">Nova matéria</h2>
-            <p class="dialog-copy">Crie um cantinho para organizar seus próximos estudos.</p>
+            <h2 id="subject-dialog-title" class="dialog-title">
+              {{ editingSubject ? 'Editar matéria' : 'Nova matéria' }}
+            </h2>
+            <p class="dialog-copy">
+              {{ editingSubject ? 'Atualize os dados desta matéria.' : 'Crie um cantinho para organizar seus próximos estudos.' }}
+            </p>
           </div>
           <button class="icon-button" type="button" aria-label="Fechar" @click="closeDialog">
             <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -196,10 +285,56 @@ function closeDialog() {
           <div class="dialog-actions">
             <button class="secondary-button" type="button" @click="closeDialog">Cancelar</button>
             <button class="primary-button" type="submit" :disabled="isSaving">
-              {{ isSaving ? 'Criando...' : 'Criar matéria' }}
+              {{ isSaving ? 'Salvando...' : editingSubject ? 'Salvar alterações' : 'Criar matéria' }}
             </button>
           </div>
         </form>
+      </section>
+    </div>
+
+    <div
+      v-if="showDeleteDialog"
+      class="modal-backdrop"
+      @click.self="closeDeleteDialog"
+      @keydown.esc="closeDeleteDialog"
+    >
+      <section
+        class="subject-dialog delete-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="delete-subject-title"
+      >
+        <div class="dialog-heading">
+          <div>
+            <h2 id="delete-subject-title" class="dialog-title">Excluir matéria?</h2>
+            <p class="dialog-copy">
+              A matéria <strong>{{ subjectToDelete?.name }}</strong>, seus tópicos, sessões de estudo,
+              itens da lista e materiais relacionados serão excluídos permanentemente.
+            </p>
+          </div>
+          <button
+            class="icon-button"
+            type="button"
+            aria-label="Fechar"
+            :disabled="isDeleting"
+            @click="closeDeleteDialog"
+          >
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="m4 4 8 8m0-8-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+            </svg>
+          </button>
+        </div>
+        <p v-if="deleteErrorMessage" class="request-error" role="alert">
+          Não foi possível excluir a matéria: {{ deleteErrorMessage }}
+        </p>
+        <div class="dialog-actions">
+          <button class="secondary-button" type="button" :disabled="isDeleting" @click="closeDeleteDialog">
+            Cancelar
+          </button>
+          <button class="danger-button" type="button" :disabled="isDeleting" @click="confirmDeleteSubject">
+            {{ isDeleting ? 'Excluindo...' : 'Excluir matéria' }}
+          </button>
+        </div>
       </section>
     </div>
   </section>
@@ -479,6 +614,36 @@ function closeDialog() {
   display: flex;
   justify-content: flex-end;
   gap: 9px;
+}
+
+.delete-dialog .dialog-copy strong {
+  color: var(--text);
+}
+
+.danger-button {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  border: 1px solid #b54747;
+  border-radius: 8px;
+  color: #fff;
+  background: #b54747;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .18s ease, transform .18s ease;
+}
+
+.danger-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: #983d3d;
+}
+
+.danger-button:disabled {
+  cursor: wait;
+  opacity: .7;
 }
 
 @media(min-width: 1550px) {

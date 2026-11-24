@@ -1,29 +1,31 @@
 <template>
-  <nav class="sidebar" aria-label="Navegação principal">
-    <RouterLink to="/" class="brand" aria-label="Orbit Study, início">
-      <span class="brand-mark" aria-hidden="true">
-        <img :src="logo" alt="" />
-      </span>
-      <span class="brand-word">O r b i t<span> .</span><small>Study</small></span>
-    </RouterLink>
+  <nav class="sidebar" :class="{ 'sidebar-collapsed': collapsed }" aria-label="Navegação principal">
+    <div class="sidebar-brand-row">
+      <RouterLink to="/" class="brand" aria-label="Orbit Study, início">
+        <span class="brand-mark" aria-hidden="true">
+          <img :src="logo" alt="" />
+        </span>
+        <span class="brand-word">O r b i t<span> .</span><small>Study</small></span>
+      </RouterLink>
+    </div>
     <p class="brand-caption">Seu espaço de aprendizado</p>
     <div class="sidebar-section-label">SEU ESPAÇO</div>
     <div class="primary-nav">
-      <router-link to="/" class="nav-link" exact-active-class="nav-link-active">
+      <router-link to="/" class="nav-link" aria-label="Dashboard, visão geral" title="Dashboard" exact-active-class="nav-link-active">
         <span class="nav-link-icon" aria-hidden="true">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V10Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </span>
         <span class="nav-link-copy"><span>Dashboard</span><small>Visão geral</small></span>
         <span class="nav-link-arrow" aria-hidden="true">→</span>
       </router-link>
-      <router-link to="/subjects" class="nav-link" exact-active-class="nav-link-active">
+      <router-link to="/subjects" class="nav-link" aria-label="Matérias, sua jornada de estudos" title="Matérias" exact-active-class="nav-link-active">
         <span class="nav-link-icon" aria-hidden="true">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M5 4.5h11.5A2.5 2.5 0 0 1 19 7v13H7a2 2 0 0 1-2-2V4.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M5 17.5A2.5 2.5 0 0 1 7.5 15H19M8.5 8h7M8.5 11h7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
         </span>
         <span class="nav-link-copy"><span>Matérias</span><small>Sua jornada de estudos</small></span>
         <span class="nav-link-arrow" aria-hidden="true">→</span>
       </router-link>
-      <router-link to="/study-list" class="nav-link" exact-active-class="nav-link-active">
+      <router-link to="/study-list" class="nav-link" aria-label="Lista, o que estudar" title="Lista" exact-active-class="nav-link-active">
         <span class="nav-link-icon" aria-hidden="true">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
             <path d="M9 6h11M9 12h11M9 18h11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
@@ -33,7 +35,7 @@
         <span class="nav-link-copy"><span>Lista</span><small>O que estudar</small></span>
         <span class="nav-link-arrow" aria-hidden="true">→</span>
       </router-link>
-      <router-link to="/essays" class="nav-link" exact-active-class="nav-link-active">
+      <router-link to="/essays" class="nav-link" aria-label="Redações, textos e avaliações" title="Redações" exact-active-class="nav-link-active">
         <span class="nav-link-icon" aria-hidden="true">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
             <path d="M6 3.5h8l4 4V20a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
@@ -43,7 +45,7 @@
         <span class="nav-link-copy"><span>Redações</span><small>Textos e avaliações</small></span>
         <span class="nav-link-arrow" aria-hidden="true">→</span>
       </router-link>
-      <router-link to="/schedule" class="nav-link" exact-active-class="nav-link-active">
+      <router-link to="/schedule" class="nav-link" aria-label="Cronograma, planejamento semanal" title="Cronograma" exact-active-class="nav-link-active">
         <span class="nav-link-icon" aria-hidden="true">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
             <rect x="3.5" y="5" width="17" height="16" rx="2.5" stroke="currentColor" stroke-width="1.6"/>
@@ -56,7 +58,13 @@
     </div>
 
     <div class="sidebar-footer">
-      <RouterLink to="/settings" class="footer-action" exact-active-class="footer-action-active">
+      <RouterLink
+        to="/settings"
+        class="footer-action"
+        aria-label="Configurações"
+        title="Configurações"
+        exact-active-class="footer-action-active"
+      >
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/>
           <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.86l.06.06-2.83 2.83-.06-.06a1.7 1.7 0 0 0-1.86-.34 1.7 1.7 0 0 0-1.03 1.56V21h-4v-.09a1.7 1.7 0 0 0-1.03-1.56 1.7 1.7 0 0 0-1.86.34l-.06.06-2.83-2.83.06-.06a1.7 1.7 0 0 0 .34-1.86A1.7 1.7 0 0 0 3 13.97H2v-4h1a1.7 1.7 0 0 0 1.56-1.03 1.7 1.7 0 0 0-.34-1.86l-.06-.06 2.83-2.83.06.06a1.7 1.7 0 0 0 1.86.34A1.7 1.7 0 0 0 9.94 3V2h4v1a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.86-.34l.06-.06 2.83 2.83-.06.06a1.7 1.7 0 0 0-.34 1.86A1.7 1.7 0 0 0 21 9.94h1v4h-1a1.7 1.7 0 0 0-1.6 1.06Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
@@ -78,6 +86,25 @@
         <span>Alternar tema</span>
         <span class="switch-track" :class="{ 'switch-on': isDark }" aria-hidden="true"><i></i></span>
       </button>
+      <button
+        class="sidebar-toggle"
+        type="button"
+        :aria-label="collapsed ? 'Expandir menu' : 'Recolher menu'"
+        :aria-expanded="!collapsed"
+        :title="collapsed ? 'Expandir menu' : 'Recolher menu'"
+        @click="toggleCollapsed"
+      >
+        <svg width="17" height="17" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path
+            :d="collapsed ? 'm6 3 5 5-5 5' : 'm10 3-5 5 5 5'"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <span class="sidebar-toggle-label">{{ collapsed ? 'Expandir menu' : 'Recolher menu' }}</span>
+      </button>
     </div>
   </nav>
 </template>
@@ -86,7 +113,19 @@
 import { ref, onMounted } from 'vue';
 import logo from '@/assets/logo1.png';
 
+const props = defineProps({
+  collapsed: {
+    type: Boolean,
+    default: false,
+  },
+});
+const emit = defineEmits(['update:collapsed']);
+
 const isDark = ref(false);
+function toggleCollapsed() {
+  emit('update:collapsed', !props.collapsed);
+}
+
 function applyTheme() {
   document.documentElement.setAttribute('data-theme', isDark.value ? 'dark' : 'light');
 }
@@ -115,7 +154,54 @@ onMounted(() => {
   padding: 30px 18px 20px;
   border-right: 1px solid var(--border);
   background: var(--surface);
-  transition: background .25s ease, border-color .25s ease;
+  transition: width .22s ease, padding .22s ease, background .25s ease, border-color .25s ease;
+}
+
+.sidebar-brand-row {
+  display: flex;
+  align-items: center;
+}
+
+.sidebar-toggle {
+  display: flex;
+  width: 100%;
+  min-height: 38px;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 9px;
+  color: var(--text-soft);
+  background: transparent;
+  font-size: 10px;
+  text-align: left;
+  cursor: pointer;
+  transition: color .18s ease, background .18s ease;
+}
+
+.sidebar-toggle svg {
+  flex: 0 0 auto;
+  color: var(--muted);
+}
+
+.sidebar-toggle:hover {
+  color: var(--text);
+  background: var(--surface-soft);
+}
+
+.sidebar-toggle:hover svg {
+  color: var(--accent);
+}
+
+.sidebar-toggle-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-toggle:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: 2px;
 }
 
 .brand {
@@ -399,6 +485,68 @@ onMounted(() => {
   transform: translateX(13px);
 }
 
+@media (min-width: 721px) {
+  .sidebar.sidebar-collapsed {
+    width: 78px;
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+
+  .sidebar.sidebar-collapsed .brand {
+    margin: 0 auto;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .sidebar.sidebar-collapsed .brand-word,
+  .sidebar.sidebar-collapsed .brand-caption,
+  .sidebar.sidebar-collapsed .sidebar-section-label,
+  .sidebar.sidebar-collapsed .nav-link-copy,
+  .sidebar.sidebar-collapsed .nav-link-arrow,
+  .sidebar.sidebar-collapsed .sidebar-toggle-label {
+    display: none;
+  }
+
+  .sidebar-collapsed .primary-nav {
+    gap: 8px;
+    margin-top: 36px;
+  }
+
+  .sidebar-collapsed .nav-link {
+    min-height: 51px;
+    justify-content: center;
+    gap: 0;
+    padding: 6px;
+  }
+
+  .sidebar-collapsed .nav-link-icon {
+    width: 39px;
+    height: 39px;
+  }
+
+  .sidebar-collapsed .nav-link-active::before {
+    left: -11px;
+  }
+
+  .sidebar-collapsed .sidebar-footer {
+    gap: 5px;
+  }
+
+  .sidebar-collapsed .footer-action,
+  .sidebar-collapsed .theme-switch,
+  .sidebar-collapsed .sidebar-toggle {
+    justify-content: center;
+    gap: 0;
+    padding: 0;
+  }
+
+  .sidebar-collapsed .footer-action span,
+  .sidebar-collapsed .theme-switch > span:not(.theme-switch-icon),
+  .sidebar-collapsed .switch-track {
+    display: none;
+  }
+}
+
 @media (max-width: 720px) {
   .sidebar {
     position: static;
@@ -414,6 +562,10 @@ onMounted(() => {
 
   .brand {
     padding: 0;
+  }
+
+  .sidebar-toggle {
+    display: none;
   }
 
   .brand-caption,
