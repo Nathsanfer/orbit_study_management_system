@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 import { createTopic as saveTopic, loadSubject } from '@/data/subjects.js';
 import { getErrorMessage } from '@/lib/supabase.js';
@@ -14,10 +14,35 @@ const isCreatingTopic = ref(false);
 const topicErrorMessage = ref('');
 const isLoading = ref(true);
 const errorMessage = ref('');
+const noticeMessage = ref('');
+const topicSearchQuery = ref('');
+const masteryLabels = [
+  'Ainda não compreendi',
+  'Tenho bastante dificuldade',
+  'Compreendi parcialmente',
+  'Tenho um bom domínio',
+  'Domino o conteúdo',
+];
+
+const filteredTopics = computed(() => {
+  const query = topicSearchQuery.value.trim().toLocaleLowerCase('pt-BR');
+  if (!subject.value) return [];
+  if (!query) return subject.value.topics;
+
+  return subject.value.topics.filter((topic) => {
+    const name = topic.name?.toLocaleLowerCase('pt-BR') ?? '';
+    const description = topic.description?.toLocaleLowerCase('pt-BR') ?? '';
+    return name.includes(query) || description.includes(query);
+  });
+});
 
 async function loadCurrentSubject() {
   isLoading.value = true;
+  topicSearchQuery.value = '';
   errorMessage.value = '';
+  noticeMessage.value = typeof route.query.cleanupWarning === 'string'
+    ? `O tópico foi excluído, mas não foi possível remover todas as imagens do resumo: ${route.query.cleanupWarning}`
+    : '';
   try {
     subject.value = await loadSubject(route.params.id);
   } catch (error) {
@@ -30,13 +55,14 @@ async function loadCurrentSubject() {
 onMounted(loadCurrentSubject);
 watch(() => route.params.id, loadCurrentSubject);
 
-function formatStudyDuration(totalMinutes) {
-  const minutes = Math.max(0, Math.floor(Number(totalMinutes) || 0));
-  const hours = Math.floor(minutes / 60);
-  const remainingMinutes = minutes % 60;
+function formatStudyDuration(totalSeconds) {
+  const seconds = Math.max(0, Math.floor(Number(totalSeconds) || 0));
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
 
-  if (!hours) return `${remainingMinutes} min`;
-  return remainingMinutes ? `${hours}h ${remainingMinutes}min` : `${hours}h`;
+  if (!hours && !minutes) return `${seconds} s`;
+  if (!hours) return `${minutes} min`;
+  return minutes ? `${hours}h ${minutes}min` : `${hours}h`;
 }
 
 function formatSessionStatus(status) {
@@ -46,7 +72,19 @@ function formatSessionStatus(status) {
   return `${label[0].toLocaleUpperCase('pt-BR')}${label.slice(1)}`;
 }
 
+function getMasteryLevel(value) {
+  const level = Number(value);
+  return Number.isInteger(level) && level >= 1 && level <= 5 ? level : 0;
+}
+
+function getMasteryLabel(value) {
+  const level = getMasteryLevel(value);
+  return level ? `${masteryLabels[level - 1]} (${level}/5)` : 'Ainda não avaliado';
+}
+
 function openTopicDialog() {
+  newTopicName.value = '';
+  newTopicDescription.value = '';
   topicErrorMessage.value = '';
   showTopicDialog.value = true;
 }
@@ -95,6 +133,8 @@ async function createNewTopic() {
       <span aria-current="page">{{ subject.name }}</span>
     </nav>
 
+    <p v-if="noticeMessage" class="cleanup-warning" role="status">{{ noticeMessage }}</p>
+
     <header class="detail-header">
       <div class="detail-title-line">
         <span class="detail-subject-icon" aria-hidden="true">
@@ -112,7 +152,7 @@ async function createNewTopic() {
       <div class="overview-panel">
         <p class="panel-label">Tempo acumulado</p>
         <div class="overview-time">
-          <strong>{{ formatStudyDuration(subject.totalStudyMinutes) }}</strong>
+          <strong>{{ formatStudyDuration(subject.totalStudySeconds) }}</strong>
           <span>de estudo registrado</span>
         </div>
         <p class="overview-caption">Somando todas as sessões desta matéria</p>
@@ -135,8 +175,21 @@ async function createNewTopic() {
       <div class="topics-heading">
         <h2>Seus tópicos</h2>
         <div class="topics-heading-actions">
+          <label class="topic-search-wrap">
+            <svg class="topic-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.6" />
+              <path d="m16 16 4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+            </svg>
+            <input
+              v-model="topicSearchQuery"
+              class="topic-search"
+              type="search"
+              placeholder="Buscar tópico..."
+              aria-label="Buscar tópico"
+            />
+          </label>
           <span class="topics-path">Matéria <span aria-hidden="true">→</span> Tópicos</span>
-          <button class="primary-button add-topic-button" type="button" @click="openTopicDialog">
+          <button class="primary-button add-topic-button" type="button" @click="openTopicDialog()">
             <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
             </svg>
@@ -145,34 +198,60 @@ async function createNewTopic() {
         </div>
       </div>
 
-      <div v-if="subject.topics.length" class="topics-list">
+      <div v-if="filteredTopics.length" class="topics-list">
         <RouterLink
-          v-for="(topic, index) in subject.topics"
+          v-for="(topic, index) in filteredTopics"
           :key="topic.id"
           class="topic-row"
           :to="{ name: 'topic-detail', params: { subjectId: subject.id, topicId: topic.id } }"
         >
-          <span class="topic-status" aria-hidden="true">
+          <span class="topic-index" aria-hidden="true">
             <span>{{ String(index + 1).padStart(2, '0') }}</span>
           </span>
           <div class="topic-copy">
             <strong>{{ topic.name }}</strong>
             <span>{{ topic.description || 'Sem descrição cadastrada.' }}</span>
           </div>
+          <span class="topic-arrow" aria-hidden="true">→</span>
           <div class="topic-meta">
-            <span class="topic-duration">{{ formatStudyDuration(topic.studyMinutes) }}</span>
+            <span class="topic-meta-chip topic-time">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <circle cx="8" cy="8" r="5.75" stroke="currentColor" stroke-width="1.2"/>
+                <path d="M8 4.5V8l2.2 1.3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+              </svg>
+              <span>Estudado</span>
+              <strong>{{ formatStudyDuration(topic.studySeconds) }}</strong>
+            </span>
             <span
-              class="topic-state"
+              class="topic-meta-chip topic-state"
               :class="{ 'no-sessions': !topic.studyStatus }"
               :title="formatSessionStatus(topic.studyStatus)"
             >
+              <span class="session-dot" aria-hidden="true"></span>
               {{ formatSessionStatus(topic.studyStatus) }}
+            </span>
+            <span
+              v-if="getMasteryLevel(topic.masteryLevel)"
+              class="topic-meta-chip topic-mastery"
+              :title="getMasteryLabel(topic.masteryLevel)"
+            >
+              <span class="mastery-stars" aria-hidden="true">
+                {{ '★'.repeat(getMasteryLevel(topic.masteryLevel)) }}{{ '☆'.repeat(5 - getMasteryLevel(topic.masteryLevel)) }}
+              </span>
+              <strong>{{ getMasteryLevel(topic.masteryLevel) }}/5</strong>
+            </span>
+            <span v-else class="topic-meta-chip topic-mastery no-mastery">
+              <span class="mastery-stars" aria-hidden="true">☆☆☆☆☆</span>
+              <span>Sem avaliação</span>
             </span>
           </div>
         </RouterLink>
       </div>
-      <div v-else class="detail-empty">
+      <div v-else-if="subject.topics.length === 0" class="detail-empty">
         Nenhum tópico cadastrado nesta matéria.
+      </div>
+      <div v-else class="detail-empty">
+        Nenhum tópico encontrado para "{{ topicSearchQuery }}".
       </div>
     </section>
 
@@ -260,6 +339,17 @@ async function createNewTopic() {
 <style scoped>
 .detail-header {
   margin-bottom: 27px;
+}
+
+.cleanup-warning {
+  margin: 12px 0 18px;
+  padding: 11px 13px;
+  border: 1px solid color-mix(in srgb, #b18b3b 30%, var(--border));
+  border-radius: 9px;
+  color: var(--text-soft);
+  background: color-mix(in srgb, #b18b3b 9%, var(--surface));
+  font-size: 10px;
+  line-height: 1.5;
 }
 
 .detail-title-line {
@@ -389,6 +479,43 @@ async function createNewTopic() {
   gap: 14px;
 }
 
+.topic-search-wrap {
+  position: relative;
+  display: flex;
+  width: 210px;
+  height: 36px;
+  align-items: center;
+}
+
+.topic-search-icon {
+  position: absolute;
+  left: 11px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.topic-search {
+  width: 100%;
+  height: 100%;
+  padding: 0 11px 0 34px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: var(--text);
+  background: var(--surface);
+  font-size: 10px;
+  transition: border-color .18s ease, box-shadow .18s ease;
+}
+
+.topic-search::placeholder {
+  color: var(--muted);
+}
+
+.topic-search:focus {
+  border-color: var(--subject-color);
+  outline: 0;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--subject-color) 16%, transparent);
+}
+
 .topics-heading h2 {
   margin: 0;
   color: var(--text);
@@ -408,40 +535,52 @@ async function createNewTopic() {
 
 .topics-list {
   display: grid;
-  gap: 9px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
+  gap: 12px;
 }
 
 .topic-row {
-  display: flex;
-  min-height: 78px;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) 18px;
+  grid-template-areas:
+    "index copy arrow"
+    ". meta meta";
   align-items: center;
-  gap: 12px;
-  padding: 13px 15px;
+  gap: 12px 13px;
+  padding: 15px 16px;
   border: 1px solid var(--border);
-  border-radius: 11px;
-  background: var(--surface);
-  transition: border-color .18s ease, transform .18s ease;
+  border-radius: 13px;
+  background: linear-gradient(
+    110deg,
+    color-mix(in srgb, var(--subject-color) 4%, var(--surface)),
+    var(--surface) 36%
+  );
+  box-shadow: var(--shadow-card);
+  transition: border-color .18s ease, transform .18s ease, box-shadow .18s ease;
 }
 
 .topic-row:hover {
-  transform: translateX(2px);
+  transform: translateY(-2px);
   border-color: color-mix(in srgb, var(--subject-color) 42%, var(--border));
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--subject-color) 9%, transparent);
 }
 
-.topic-status {
+.topic-index {
+  grid-area: index;
   display: grid;
-  width: 32px;
-  height: 32px;
-  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
   place-items: center;
-  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--subject-color) 16%, var(--border));
+  border-radius: 11px;
   color: var(--subject-color);
-  background: color-mix(in srgb, var(--subject-color) 10%, var(--surface));
+  background: color-mix(in srgb, var(--subject-color) 9%, var(--surface));
+  font: 600 11px var(--font-title);
 }
 
 .topic-copy {
+  grid-area: copy;
   min-width: 0;
-  flex: 1;
 }
 
 .topic-copy strong {
@@ -464,35 +603,83 @@ async function createNewTopic() {
 }
 
 .topic-meta {
+  grid-area: meta;
   display: flex;
-  flex: 0 0 auto;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
 }
 
-.topic-duration {
+.topic-meta-chip {
+  display: inline-flex;
+  min-height: 27px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 9px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
   color: var(--text-soft);
-  font-size: 10px;
-  font-weight: 600;
+  background: var(--surface);
+  font-size: 9px;
   white-space: nowrap;
+}
+
+.topic-meta-chip strong {
+  color: var(--text);
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.topic-time svg {
+  color: var(--muted);
 }
 
 .topic-state {
-  max-width: 130px;
-  overflow: hidden;
-  padding: 5px 8px;
-  border-radius: 20px;
   color: var(--subject-color);
-  background: color-mix(in srgb, var(--subject-color) 10%, var(--surface));
-  font-size: 9px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  border-color: color-mix(in srgb, var(--subject-color) 21%, var(--border));
+  background: color-mix(in srgb, var(--subject-color) 7%, var(--surface));
 }
 
 .topic-state.no-sessions {
   color: var(--muted);
   background: var(--surface-soft);
+}
+
+.session-dot {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: .7;
+}
+
+.topic-mastery {
+  border-color: color-mix(in srgb, #b18b3b 24%, var(--border));
+}
+
+.mastery-stars {
+  color: #b18b3b;
+  font-size: 10px;
+  letter-spacing: -.04em;
+}
+
+.topic-arrow {
+  grid-area: arrow;
+  justify-self: end;
+  color: var(--muted);
+  font-size: 16px;
+  transition: color .18s ease, transform .18s ease;
+}
+
+.topic-row:hover .topic-arrow {
+  transform: translateX(2px);
+  color: var(--subject-color);
+}
+
+.no-mastery {
+  color: var(--muted);
 }
 
 .detail-empty {
@@ -622,7 +809,7 @@ async function createNewTopic() {
 
 :global(:root[data-theme='dark']) .detail-subject-icon,
 :global(:root[data-theme='dark']) .study-panel-icon,
-:global(:root[data-theme='dark']) .topic-status,
+:global(:root[data-theme='dark']) .topic-index,
 :global(:root[data-theme='dark']) .topic-state:not(.no-sessions) {
   color: color-mix(in srgb, var(--subject-color) 60%, white);
 }
@@ -630,6 +817,18 @@ async function createNewTopic() {
 @media (max-width: 720px) {
   .detail-overview {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .topics-heading {
+    align-items: flex-start;
+  }
+
+  .topics-heading-actions {
+    flex-wrap: wrap;
+  }
+
+  .topic-search-wrap {
+    width: min(100%, 210px);
   }
 }
 
@@ -645,16 +844,24 @@ async function createNewTopic() {
   }
 
   .topic-row {
+    grid-template-columns: 32px minmax(0, 1fr) 14px;
     gap: 10px;
-    padding-inline: 11px;
+    padding: 13px 11px;
+  }
+
+  .topic-index {
+    width: 32px;
+    height: 32px;
   }
 
   .topic-meta {
-    max-width: 88px;
+    gap: 6px;
   }
 
-  .topic-state {
-    max-width: 88px;
+  .topic-meta-chip {
+    min-height: 25px;
+    padding-inline: 7px;
+    font-size: 8px;
   }
 
   .topics-heading {

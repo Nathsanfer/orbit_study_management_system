@@ -11,17 +11,26 @@ export async function loadStudySessions(start, end) {
     .order('data_inicio');
   if (error) throw error;
 
-  return (data ?? []).map((session, index) => ({
-    id: session.id,
-    startedAt: new Date(session.data_inicio),
-    endedAt: session.data_fim ? new Date(session.data_fim) : null,
-    minutes: session.duracao,
-    status: session.status,
-    topic: session.topicos.titulo,
-    subject: {
-      name: session.topicos.materias.nome,
-      icon: normalizeSubjectIconName(session.topicos.materias.icone),
-      color: session.topicos.materias.cor || subjectColors[index % subjectColors.length],
-    },
-  }));
+  return (data ?? []).map((session, index) => {
+    const recordedSeconds = Math.max(0, Number(session.duracao) || 0) * 60;
+    const segmentStart = Date.parse(session.data_inicio);
+    const activeSeconds = session.status === 'em_andamento'
+      && Number.isFinite(segmentStart)
+      ? Math.max(0, Math.floor((Date.now() - segmentStart) / 1000))
+      : 0;
+
+    return {
+      id: session.id,
+      startedAt: new Date(session.data_inicio),
+      endedAt: session.data_fim ? new Date(session.data_fim) : null,
+      minutes: Math.floor((recordedSeconds + activeSeconds) / 60),
+      status: session.status,
+      topic: session.topicos.titulo,
+      subject: {
+        name: session.topicos.materias.nome,
+        icon: normalizeSubjectIconName(session.topicos.materias.icone),
+        color: session.topicos.materias.cor || subjectColors[index % subjectColors.length],
+      },
+    };
+  });
 }
