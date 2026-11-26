@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import { loadSubjects, subjects } from '@/data/subjects.js';
 import { getErrorMessage, getSupabase } from '@/lib/supabase.js';
@@ -9,7 +9,6 @@ const newItem = ref('');
 const selectedSubjectId = ref('');
 const isLoading = ref(true);
 const errorMessage = ref('');
-const remainingCount = computed(() => items.value.filter((item) => !item.done).length);
 
 onMounted(loadData);
 
@@ -29,6 +28,7 @@ async function loadData() {
       id: item.id,
       subjectId: item.id_materia,
       subjectName: item.materias.nome,
+      subjectColor: availableSubjects.find((subject) => subject.id === item.id_materia)?.color,
       name: item.titulo,
       done: item.status === 'concluido',
       position: item.posicao,
@@ -67,6 +67,7 @@ async function addItem() {
       id: data.id,
       subjectId: data.id_materia,
       subjectName: data.materias.nome,
+      subjectColor: subjects.value.find((subject) => subject.id === data.id_materia)?.color,
       name: data.titulo,
       done: data.status === 'concluido',
       position: data.posicao,
@@ -113,14 +114,6 @@ async function updateStatus(item) {
     </header>
 
     <section class="list-panel" aria-label="Itens para estudar">
-      <div class="list-summary">
-        <div>
-          <span class="summary-label">Seu próximo passo</span>
-          <strong>{{ remainingCount }} {{ remainingCount === 1 ? 'item pendente' : 'itens pendentes' }}</strong>
-        </div>
-        <span class="summary-mark" aria-hidden="true">✦</span>
-      </div>
-
       <p v-if="errorMessage" class="request-error" role="alert">{{ errorMessage }}</p>
 
       <form class="add-form" @submit.prevent="addItem">
@@ -150,7 +143,16 @@ async function updateStatus(item) {
 
       <div v-if="isLoading" class="empty-state" role="status">Carregando sua lista...</div>
       <ul v-else-if="items.length" class="study-items">
-        <li v-for="item in items" :key="item.id" class="study-item" :class="{ completed: item.done }">
+        <li
+          v-for="(item, index) in items"
+          :key="item.id"
+          class="study-item"
+          :class="{ completed: item.done }"
+          :style="{ '--subject-color': item.subjectColor || 'var(--accent)' }"
+        >
+          <span class="topic-index" aria-hidden="true">
+            <span>{{ String(index + 1).padStart(2, '0') }}</span>
+          </span>
           <label class="item-label">
             <input v-model="item.done" type="checkbox" :disabled="item.isUpdating" @change="updateStatus(item)" />
             <span class="custom-checkbox" aria-hidden="true">
@@ -162,7 +164,6 @@ async function updateStatus(item) {
           </label>
           <div class="item-meta">
             <span class="item-subject">{{ item.subjectName }}</span>
-            <span class="item-status">{{ item.done ? 'Concluído' : 'Para estudar' }}</span>
           </div>
         </li>
       </ul>
@@ -200,36 +201,6 @@ async function updateStatus(item) {
   border-radius: 14px;
   background: var(--surface);
   box-shadow: var(--shadow-card);
-}
-
-.list-summary {
-  display: flex;
-  min-height: 89px;
-  align-items: center;
-  justify-content: space-between;
-  padding: 18px 22px;
-  border-bottom: 1px solid var(--border);
-  background: color-mix(in srgb, var(--accent) 5%, var(--surface));
-}
-
-.summary-label {
-  display: block;
-  margin-bottom: 5px;
-  color: var(--muted);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-}
-
-.list-summary strong {
-  color: var(--text);
-  font: 500 20px var(--font-title);
-}
-
-.summary-mark {
-  color: var(--accent);
-  font-size: 22px;
 }
 
 .add-form {
@@ -286,29 +257,73 @@ async function updateStatus(item) {
 
 .study-items {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
   margin: 0;
-  padding: 0 22px;
+  padding: 18px 22px 22px;
   list-style: none;
 }
 
 .study-item {
-  display: flex;
-  min-height: 66px;
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 88px;
+  grid-template-columns: 38px minmax(0, 1fr) minmax(80px, 30%);
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  border-bottom: 1px solid var(--border);
+  gap: 13px;
+  overflow: hidden;
+  padding: 14px 15px 14px 17px;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  background: linear-gradient(
+    115deg,
+    color-mix(in srgb, var(--subject-color) 7%, var(--surface)),
+    var(--surface) 62%
+  );
+  box-shadow: 0 3px 12px rgb(34 28 45 / 4%);
+  transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease, background .2s ease;
 }
 
-.study-item:last-child {
-  border-bottom: 0;
+.study-item::before {
+  position: absolute;
+  top: 13px;
+  bottom: 13px;
+  left: 0;
+  width: 3px;
+  border-radius: 0 4px 4px 0;
+  background: color-mix(in srgb, var(--subject-color) 70%, transparent);
+  content: '';
+}
+
+.study-item:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--subject-color) 38%, var(--border));
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--subject-color) 10%, transparent);
+}
+
+.topic-index {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--subject-color) 16%, var(--border));
+  border-radius: 12px;
+  color: var(--subject-color);
+  background: color-mix(in srgb, var(--subject-color) 9%, var(--surface));
+  font: 650 13px var(--font-title);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 28%);
+}
+
+:global(:root[data-theme='dark']) .topic-index {
+  color: color-mix(in srgb, var(--subject-color) 60%, white);
 }
 
 .item-label {
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 12px;
+  gap: 9px;
   cursor: pointer;
 }
 
@@ -321,63 +336,99 @@ async function updateStatus(item) {
 
 .custom-checkbox {
   display: grid;
-  width: 21px;
-  height: 21px;
+  width: 20px;
+  height: 20px;
   flex: 0 0 auto;
   place-items: center;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  border: 1.5px solid color-mix(in srgb, var(--subject-color) 32%, var(--border));
+  border-radius: 7px;
   color: transparent;
   background: var(--surface);
-  transition: background .18s ease, color .18s ease, border-color .18s ease;
+  transition: background .18s ease, color .18s ease, border-color .18s ease, transform .18s ease;
 }
 
 .item-label input:checked + .custom-checkbox {
-  border-color: var(--accent);
+  transform: scale(.96);
+  border-color: var(--subject-color);
   color: #fff;
-  background: var(--accent);
+  background: var(--subject-color);
 }
 
 .item-label input:focus-visible + .custom-checkbox {
-  outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline: 3px solid color-mix(in srgb, var(--subject-color) 38%, transparent);
   outline-offset: 2px;
 }
 
 .item-name {
+  min-width: 0;
   overflow: hidden;
   color: var(--text);
-  font-size: 12px;
+  font: 550 15px/1.45 var(--font-title);
   text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color .18s ease;
 }
 
 .completed .item-name {
   color: var(--muted);
   text-decoration: line-through;
-}
-
-.item-status {
-  flex: 0 0 auto;
-  padding: 5px 9px;
-  border-radius: 20px;
-  color: var(--text-soft);
-  background: var(--surface-soft);
-  font-size: 9px;
+  text-decoration-color: color-mix(in srgb, var(--subject-color) 55%, var(--muted));
 }
 
 .item-meta {
-  display: grid;
-  justify-items: end;
-  gap: 5px;
+  justify-self: end;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .item-subject {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
   color: var(--muted);
-  font-size: 8px;
+  font-size: 10px;
+  font-weight: 550;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.completed .item-status {
-  color: var(--accent);
-  background: var(--accent-soft);
+.item-subject::before {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--subject-color);
+  content: '';
+}
+
+.completed {
+  background: linear-gradient(
+    115deg,
+    color-mix(in srgb, var(--subject-color) 5%, var(--surface)),
+    var(--surface) 62%
+  );
+}
+
+@media (max-width: 850px) {
+  .study-items {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .add-form {
+    flex-wrap: wrap;
+  }
+
+  .add-form input {
+    flex: 1 1 100%;
+  }
+
+  .add-form select,
+  .add-form .primary-button {
+    flex: 1 1 auto;
+  }
 }
 
 .sr-only {
@@ -404,19 +455,25 @@ async function updateStatus(item) {
   }
 
   .study-items {
-    padding-inline: 15px;
+    padding: 15px;
   }
 
   .study-item {
-    min-height: 61px;
+    min-height: 80px;
+    padding: 12px 12px 12px 14px;
   }
 
-  .item-label {
+  .study-item {
+    grid-template-columns: 34px minmax(0, 1fr) minmax(64px, 31%);
     gap: 9px;
   }
 
-  .item-status {
-    padding: 5px 7px;
+  .topic-index {
+    width: 34px;
+    height: 34px;
+  }
+
+  .item-subject {
     font-size: 8px;
   }
 }

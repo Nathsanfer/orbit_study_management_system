@@ -7,9 +7,7 @@ const essays = ref([]);
 const isLoading = ref(true);
 const showAddDialog = ref(false);
 const isSaving = ref(false);
-const title = ref('');
 const theme = ref('');
-const text = ref('');
 const errorMessage = ref('');
 const searchQuery = ref('');
 
@@ -44,14 +42,11 @@ async function addEssay() {
   isSaving.value = true;
   try {
     const essay = await saveEssay({
-      title: title.value.trim(),
       theme: theme.value.trim(),
-      text: text.value.trim(),
+      text: '',
     });
     essays.value.unshift(essay);
-    title.value = '';
     theme.value = '';
-    text.value = '';
     showAddDialog.value = false;
   } catch (error) {
     errorMessage.value = getErrorMessage(error);
@@ -143,12 +138,8 @@ async function addEssay() {
         </div>
         <form class="essay-form" @submit.prevent="addEssay">
           <p v-if="errorMessage" class="request-error" role="alert">{{ errorMessage }}</p>
-          <label for="essay-title">Título</label>
-          <input id="essay-title" v-model="title" maxlength="120" required />
           <label for="essay-theme">Tema</label>
           <input id="essay-theme" v-model="theme" maxlength="250" required />
-          <label for="essay-text">Texto</label>
-          <textarea id="essay-text" v-model="text" rows="9" required></textarea>
           <div class="dialog-actions">
             <button class="secondary-button" type="button" @click="showAddDialog = false">Cancelar</button>
             <button class="primary-button" type="submit" :disabled="isSaving">

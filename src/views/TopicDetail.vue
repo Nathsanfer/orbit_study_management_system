@@ -333,6 +333,8 @@ function contentSaveLabel() {
     </header>
 
     <div class="topic-layout">
+      <StudyTimer class="topic-timer" :key="topic.id" :topic-id="topic.id" />
+
       <main class="topic-main">
         <section class="topic-section summary-section">
           <div class="summary-heading">
@@ -392,25 +394,6 @@ function contentSaveLabel() {
           </p>
         </section>
       </main>
-
-      <StudyTimer class="topic-timer" :key="topic.id" :topic-id="topic.id" />
-
-      <aside class="topic-aside">
-        <RouterLink
-          class="subject-return"
-          :to="{ name: 'subject-detail', params: { id: subject.id } }"
-        >
-          <span class="return-icon" aria-hidden="true">
-            <component :is="getSubjectIcon(subject.icon)" :size="18" :stroke-width="1.7" />
-          </span>
-          <span>
-            <small>Parte da matéria</small>
-            <strong>{{ subject.name }}</strong>
-          </span>
-          <span class="return-arrow" aria-hidden="true">→</span>
-        </RouterLink>
-
-      </aside>
     </div>
 
     <div
@@ -682,27 +665,19 @@ function contentSaveLabel() {
 
 .topic-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 250px;
-  grid-template-rows: auto auto;
-  grid-template-areas:
-    "main timer"
-    "main aside";
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
   gap: 18px;
 }
 
 .topic-main {
-  grid-area: main;
   display: grid;
   min-width: 0;
   gap: 14px;
 }
 
-.topic-timer {
-  grid-area: timer;
-}
-
 .topic-section {
+  min-width: 0;
   padding: 20px;
   border: 1px solid var(--border);
   border-radius: 13px;
@@ -744,8 +719,13 @@ function contentSaveLabel() {
 
 .section-title {
   display: flex;
+  min-width: 0;
   align-items: center;
   gap: 11px;
+}
+
+.section-title > div {
+  min-width: 0;
 }
 
 .section-icon {
@@ -831,12 +811,6 @@ function contentSaveLabel() {
   font: 600 14px var(--font-title);
 }
 
-.topic-aside {
-  grid-area: aside;
-  display: grid;
-  gap: 12px;
-}
-
 .mastery-prompt {
   margin: 15px 0 12px;
   color: var(--text-soft);
@@ -898,6 +872,7 @@ function contentSaveLabel() {
 .mastery-option > span:last-child {
   font-size: 9px;
   line-height: 1.4;
+  overflow-wrap: anywhere;
 }
 
 .mastery-status {
@@ -908,64 +883,6 @@ function contentSaveLabel() {
 
 .mastery-error {
   color: #b54747;
-}
-
-.subject-return {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 13px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface);
-  transition: border-color .18s ease, transform .18s ease;
-}
-
-.subject-return:hover {
-  transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--subject-color) 40%, var(--border));
-}
-
-.return-icon {
-  display: grid;
-  width: 34px;
-  height: 34px;
-  flex: 0 0 auto;
-  place-items: center;
-  border-radius: 10px;
-  color: var(--subject-color);
-  background: color-mix(in srgb, var(--subject-color) 11%, var(--surface));
-  font: 600 15px var(--font-title);
-}
-
-.subject-return > span:nth-child(2) {
-  display: grid;
-  min-width: 0;
-  gap: 3px;
-}
-
-.subject-return small {
-  color: var(--muted);
-  font-size: 8px;
-}
-
-.subject-return strong {
-  overflow: hidden;
-  color: var(--text);
-  font-size: 10px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.return-arrow {
-  margin-left: auto;
-  color: var(--muted);
-}
-
-.future-note {
-  margin: 2px 3px;
-  color: var(--muted);
-  font: italic 11px/1.7 var(--font-title);
 }
 
 .topic-edit-backdrop {
@@ -1131,31 +1048,6 @@ function contentSaveLabel() {
   background: #433c2b;
 }
 
-@media (max-width: 1050px) {
-  .topic-layout {
-    grid-template-columns: minmax(0, 1fr) 220px;
-  }
-}
-
-@media (max-width: 720px) {
-  .topic-layout {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto;
-    grid-template-areas:
-      "timer"
-      "main"
-      "aside";
-  }
-
-  .topic-aside {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .future-note {
-    grid-column: 1 / -1;
-  }
-}
-
 @media (max-width: 480px) {
   .topic-header {
     align-items: flex-start;
@@ -1181,22 +1073,28 @@ function contentSaveLabel() {
     gap: 7px;
   }
 
-  .topic-aside {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .future-note {
-    grid-column: auto;
-  }
-
   .topic-section {
     padding: 16px;
+  }
+
+  .summary-heading {
+    align-items: flex-start;
+    flex-wrap: wrap;
   }
 
   .topic-edit-dialog {
     padding: 21px;
   }
 
+}
+
+@media (max-width: 600px) {
+  .mastery-options {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 420px) {
   .mastery-options {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

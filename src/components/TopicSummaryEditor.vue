@@ -358,13 +358,13 @@ async function handleImageUpload(event) {
 
 .editor-toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 5px;
-  overflow-x: auto;
+  overflow-x: hidden;
   padding: 9px;
   border-bottom: 1px solid var(--border);
   background: color-mix(in srgb, var(--surface-soft) 62%, var(--surface));
-  scrollbar-width: thin;
 }
 
 .block-style-label {
@@ -468,16 +468,22 @@ async function handleImageUpload(event) {
 }
 
 .editor-content {
+  min-width: 0;
+  max-width: 100%;
   min-height: 290px;
   padding: 7px 17px 18px;
   color: var(--text);
+  overflow-wrap: anywhere;
 }
 
 .editor-content :deep(.tiptap) {
+  min-width: 0;
+  max-width: 100%;
   min-height: 265px;
   outline: none;
   font-size: 12px;
   line-height: 1.8;
+  overflow-wrap: anywhere;
 }
 
 .editor-content :deep(.tiptap > * + *) {
@@ -587,6 +593,7 @@ async function handleImageUpload(event) {
 
 .editor-content :deep(.tiptap table) {
   width: 100%;
+  max-width: 100%;
   border: 1px solid var(--border);
   border-radius: 9px;
   border-spacing: 0;
@@ -595,17 +602,20 @@ async function handleImageUpload(event) {
 }
 
 .editor-content :deep(.tiptap .tableWrapper) {
-  overflow-x: auto;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .editor-content :deep(.tiptap th),
 .editor-content :deep(.tiptap td) {
-  min-width: 70px;
+  min-width: 0;
   padding: 8px 10px;
   border-right: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
   text-align: left;
   vertical-align: top;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .editor-content :deep(.tiptap th) {

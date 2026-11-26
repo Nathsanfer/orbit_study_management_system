@@ -1,7 +1,12 @@
 <template>
-  <nav class="sidebar" :class="{ 'sidebar-collapsed': collapsed }" aria-label="Navegação principal">
+  <nav
+    class="sidebar"
+    :class="{ 'sidebar-collapsed': collapsed, 'sidebar-mobile-open': mobileOpen }"
+    aria-label="Navegação principal"
+    @keydown.esc="closeMobileMenu"
+  >
     <div class="sidebar-brand-row">
-      <RouterLink to="/" class="brand" aria-label="Orbit Study, início">
+      <RouterLink to="/" class="brand" aria-label="Orbit Study, início" @click="closeMobileMenu">
         <span class="brand-mark" aria-hidden="true">
           <img :src="logo" alt="" />
         </span>
@@ -11,21 +16,21 @@
     <p class="brand-caption">Seu espaço de aprendizado</p>
     <div class="sidebar-section-label">SEU ESPAÇO</div>
     <div class="primary-nav">
-      <router-link to="/" class="nav-link" aria-label="Dashboard, visão geral" title="Dashboard" exact-active-class="nav-link-active">
+      <router-link to="/" class="nav-link" aria-label="Dashboard, visão geral" title="Dashboard" exact-active-class="nav-link-active" @click="closeMobileMenu">
         <span class="nav-link-icon" aria-hidden="true">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V10Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </span>
         <span class="nav-link-copy"><span>Dashboard</span><small>Visão geral</small></span>
         <span class="nav-link-arrow" aria-hidden="true">→</span>
       </router-link>
-      <router-link to="/subjects" class="nav-link" aria-label="Matérias, sua jornada de estudos" title="Matérias" exact-active-class="nav-link-active">
+      <router-link to="/subjects" class="nav-link" aria-label="Matérias, sua jornada de estudos" title="Matérias" exact-active-class="nav-link-active" @click="closeMobileMenu">
         <span class="nav-link-icon" aria-hidden="true">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M5 4.5h11.5A2.5 2.5 0 0 1 19 7v13H7a2 2 0 0 1-2-2V4.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M5 17.5A2.5 2.5 0 0 1 7.5 15H19M8.5 8h7M8.5 11h7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
         </span>
         <span class="nav-link-copy"><span>Matérias</span><small>Sua jornada de estudos</small></span>
         <span class="nav-link-arrow" aria-hidden="true">→</span>
       </router-link>
-      <router-link to="/study-list" class="nav-link" aria-label="Lista, o que estudar" title="Lista" exact-active-class="nav-link-active">
+      <router-link to="/study-list" class="nav-link" aria-label="Lista, o que estudar" title="Lista" exact-active-class="nav-link-active" @click="closeMobileMenu">
         <span class="nav-link-icon" aria-hidden="true">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
             <path d="M9 6h11M9 12h11M9 18h11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
@@ -35,7 +40,7 @@
         <span class="nav-link-copy"><span>Lista</span><small>O que estudar</small></span>
         <span class="nav-link-arrow" aria-hidden="true">→</span>
       </router-link>
-      <router-link to="/essays" class="nav-link" aria-label="Redações, textos e avaliações" title="Redações" exact-active-class="nav-link-active">
+      <router-link to="/essays" class="nav-link" aria-label="Redações, textos e avaliações" title="Redações" exact-active-class="nav-link-active" @click="closeMobileMenu">
         <span class="nav-link-icon" aria-hidden="true">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
             <path d="M6 3.5h8l4 4V20a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
@@ -45,7 +50,7 @@
         <span class="nav-link-copy"><span>Redações</span><small>Textos e avaliações</small></span>
         <span class="nav-link-arrow" aria-hidden="true">→</span>
       </router-link>
-      <router-link to="/schedule" class="nav-link" aria-label="Cronograma, planejamento semanal" title="Cronograma" exact-active-class="nav-link-active">
+      <router-link to="/schedule" class="nav-link" aria-label="Cronograma, planejamento semanal" title="Cronograma" exact-active-class="nav-link-active" @click="closeMobileMenu">
         <span class="nav-link-icon" aria-hidden="true">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
             <rect x="3.5" y="5" width="17" height="16" rx="2.5" stroke="currentColor" stroke-width="1.6"/>
@@ -64,6 +69,7 @@
         aria-label="Configurações"
         title="Configurações"
         exact-active-class="footer-action-active"
+        @click="closeMobileMenu"
       >
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/>
@@ -110,37 +116,34 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
 import logo from '@/assets/logo1.png';
+import { currentTheme, initializeTheme, setTheme } from '@/lib/theme.js';
 
 const props = defineProps({
   collapsed: {
     type: Boolean,
     default: false,
   },
+  mobileOpen: {
+    type: Boolean,
+    default: false,
+  },
 });
-const emit = defineEmits(['update:collapsed']);
+const emit = defineEmits(['update:collapsed', 'close-mobile-menu']);
 
-const isDark = ref(false);
+const isDark = computed(() => currentTheme.value === 'dark');
 function toggleCollapsed() {
   emit('update:collapsed', !props.collapsed);
 }
 
-function applyTheme() {
-  document.documentElement.setAttribute('data-theme', isDark.value ? 'dark' : 'light');
-}
 function toggleTheme() {
-  isDark.value = !isDark.value;
-  applyTheme();
-  localStorage.setItem('orbit-theme', isDark.value ? 'dark' : 'light');
+  setTheme(isDark.value ? 'light' : 'dark');
 }
-onMounted(() => {
-  const savedTheme = localStorage.getItem('orbit-theme');
-  isDark.value = savedTheme
-    ? savedTheme === 'dark'
-    : window.matchMedia('(prefers-color-scheme: dark)').matches;
-  applyTheme();
-});
+function closeMobileMenu() {
+  emit('close-mobile-menu');
+}
+onMounted(initializeTheme);
 </script>
 
 <style scoped>
@@ -549,26 +552,47 @@ onMounted(() => {
 
 @media (max-width: 720px) {
   .sidebar {
-    position: static;
-    width: auto;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    padding: 13px 17px;
-    border-right: 0;
-    border-bottom: 1px solid var(--border);
+    position: fixed;
+    z-index: 31;
+    inset: 57px auto 0 0;
+    width: min(86vw, 310px);
+    max-width: calc(100vw - 52px);
+    height: calc(100vh - 57px);
+    height: calc(100dvh - 57px);
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    justify-content: flex-start;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 24px 16px 16px;
+    border-right: 1px solid var(--border);
+    border-bottom: 0;
+    box-shadow: none;
+    transform: translateX(-105%);
+    visibility: hidden;
+    transition: transform .24s ease, visibility 0s linear .24s;
   }
 
-  .brand {
-    padding: 0;
+  .sidebar.sidebar-mobile-open {
+    transform: translateX(0);
+    visibility: visible;
+    box-shadow: 14px 0 40px rgb(25 23 50 / 18%);
+    transition: transform .24s ease, visibility 0s;
+  }
+
+  .sidebar-brand-row {
+    display: none;
+  }
+
+  .brand-caption {
+    display: none;
   }
 
   .sidebar-toggle {
     display: none;
   }
 
-  .brand-caption,
   .sidebar-note {
     display: none;
   }
@@ -588,91 +612,76 @@ onMounted(() => {
   }
 
   .sidebar-section-label {
-    display: none;
+    display: block;
+    margin: 30px 10px 12px;
   }
 
   .primary-nav {
-    order: 2;
-    display: flex;
-    width: 100%;
-    justify-content: space-between;
-    margin-top: 10px;
+    display: grid;
+    width: auto;
+    gap: 5px;
+    margin-top: 0;
   }
 
   .nav-link {
-    min-height: 41px;
-    flex: 1;
-    justify-content: center;
-    gap: 6px;
-    padding: 4px 5px;
-    border-radius: 9px;
+    min-height: 54px;
+    justify-content: flex-start;
+    gap: 10px;
+    padding: 7px 9px;
+    border-radius: 11px;
   }
 
   .nav-link-icon {
-    width: 25px;
-    height: 25px;
-    border: 0;
-    border-radius: 7px;
-    background: transparent;
+    width: 35px;
+    height: 35px;
+    border: 1px solid var(--border);
+    border-radius: 11px;
   }
 
   .nav-link-icon svg {
-    width: 16px;
-    height: 16px;
+    width: 19px;
+    height: 19px;
   }
 
   .nav-link-copy {
-    display: block;
+    display: grid;
     min-width: 0;
+    gap: 4px;
   }
 
   .nav-link-copy > span {
-    overflow: hidden;
-    font-size: 10px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    font-size: 11px;
   }
 
-  .nav-link-copy small,
   .nav-link-arrow {
     display: none;
   }
 
   .nav-link-active::before {
-    inset: auto 25% -1px;
-    width: 50%;
-    height: 2px;
-    border-radius: 2px 2px 0 0;
-  }
-
-  .nav-link-active .nav-link-icon {
-    background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+    inset: 12px auto 12px -17px;
+    width: 3px;
+    height: auto;
+    border-radius: 0 3px 3px 0;
   }
 
   .sidebar-footer {
-    order: 3;
-    width: 100%;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     gap: 4px;
-    margin-top: 9px;
-    padding-top: 8px;
+    margin-top: auto;
+    padding-top: 12px;
   }
 
   .footer-action,
   .theme-switch {
-    font-size: 9px;
-  }
-
-  .footer-action,
-  .theme-switch {
-    min-height: 36px;
-    justify-content: center;
-    gap: 5px;
-    padding: 4px;
+    min-height: 42px;
+    justify-content: flex-start;
+    gap: 10px;
+    padding: 0 10px;
+    font-size: 10px;
   }
 
   .theme-switch > span:nth-child(2) {
-    display: none;
+    display: inline;
   }
 }
 </style>
